@@ -1,24 +1,34 @@
-// index.html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Reflectance Models Comparison</title>
+    <title>Advanced Reflectance Models Comparison</title>
     <style>
-        body { margin: 0; }
+        body { margin: 0; background: #1a1a1a; }
         canvas { display: block; }
         .controls {
             position: fixed;
             top: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             color: white;
-            padding: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+        }
+        .model-label {
+            position: absolute;
+            color: white;
+            font-family: Arial, sans-serif;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+            transform: translateX(-50%);
         }
     </style>
 </head>
 <body>
     <div class="controls">
-        <h3>Reflectance Models Demo</h3>
+        <h3>Advanced Reflectance Models</h3>
         <div id="modelParams"></div>
     </div>
     <script type="importmap">
@@ -34,88 +44,165 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-        // Scene setup
+        // Scene setup with better configuration
         const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // Controls
+        // Enhanced controls
         const controls = new OrbitControls(camera, renderer.domElement);
-        camera.position.z = 5;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        camera.position.set(0, 2, 8);
+        controls.update();
 
-        // Light
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(1, 1, 1);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040));
+        // Improved lighting setup
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+        mainLight.position.set(5, 5, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        scene.add(mainLight);
 
-        // Shader materials
+        const fillLight = new THREE.DirectionalLight(0x9090ff, 0.5);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        scene.add(ambientLight);
+
+        // Enhanced shader materials
         const phongShader = {
             vertexShader: `
                 varying vec3 vNormal;
                 varying vec3 vViewPosition;
+                varying vec3 vWorldPosition;
 
                 void main() {
                     vNormal = normalMatrix * normal;
                     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                     vViewPosition = -mvPosition.xyz;
+                    vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `,
             fragmentShader: `
                 varying vec3 vNormal;
                 varying vec3 vViewPosition;
+                varying vec3 vWorldPosition;
                 uniform vec3 lightDirection;
+                uniform vec3 lightColor;
+                uniform vec3 fillLightDirection;
+                uniform vec3 fillLightColor;
                 uniform float shininess;
                 uniform float ks;
+                uniform vec3 baseColor;
 
                 void main() {
                     vec3 normal = normalize(vNormal);
                     vec3 lightDir = normalize(lightDirection);
                     vec3 viewDir = normalize(vViewPosition);
                     
-                    // Diffuse
+                    // Main light
                     float diff = max(dot(normal, lightDir), 0.0);
-                    
-                    // Specular (Phong)
                     vec3 reflectDir = reflect(-lightDir, normal);
                     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+                    vec3 mainContrib = lightColor * (baseColor * diff + vec3(1.0) * ks * spec);
                     
-                    vec3 color = vec3(0.8) * diff + vec3(1.0) * ks * spec;
+                    // Fill light
+                    vec3 fillDir = normalize(fillLightDirection);
+                    float fillDiff = max(dot(normal, fillDir), 0.0);
+                    vec3 fillContrib = fillLightColor * (baseColor * fillDiff);
+                    
+                    // Fresnel effect
+                    float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 5.0);
+                    
+                    // Final color
+                    vec3 color = mainContrib + fillContrib + vec3(0.2) * fresnel;
+                    
+                    // Gamma correction
+                    color = pow(color, vec3(1.0/2.2));
+                    
                     gl_FragColor = vec4(color, 1.0);
                 }
             `
         };
 
-        const ggxShader = {
+        const cookTorranceShader = {
             vertexShader: phongShader.vertexShader,
             fragmentShader: `
                 varying vec3 vNormal;
                 varying vec3 vViewPosition;
+                varying vec3 vWorldPosition;
                 uniform vec3 lightDirection;
+                uniform vec3 lightColor;
+                uniform vec3 fillLightDirection;
+                uniform vec3 fillLightColor;
                 uniform float roughness;
-                uniform float ks;
+                uniform float metalness;
+                uniform vec3 baseColor;
 
-                float ggx(vec3 N, vec3 H, float roughness) {
+                const float PI = 3.14159265359;
+
+                float ggxDistribution(float NdotH, float roughness) {
                     float a2 = roughness * roughness;
-                    float NdotH = max(dot(N, H), 0.0);
                     float NdotH2 = NdotH * NdotH;
                     float denom = NdotH2 * (a2 - 1.0) + 1.0;
-                    return a2 / (3.14159 * denom * denom);
+                    return a2 / (PI * denom * denom);
+                }
+
+                float geomSmith(float NdotV, float NdotL, float roughness) {
+                    float r = roughness + 1.0;
+                    float k = (r * r) / 8.0;
+                    float ggx1 = NdotV / (NdotV * (1.0 - k) + k);
+                    float ggx2 = NdotL / (NdotL * (1.0 - k) + k);
+                    return ggx1 * ggx2;
+                }
+
+                vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+                    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
                 }
 
                 void main() {
                     vec3 normal = normalize(vNormal);
-                    vec3 lightDir = normalize(lightDirection);
                     vec3 viewDir = normalize(vViewPosition);
-                    vec3 H = normalize(lightDir + viewDir);
+                    vec3 lightDir = normalize(lightDirection);
+                    vec3 halfDir = normalize(lightDir + viewDir);
                     
-                    float diff = max(dot(normal, lightDir), 0.0);
-                    float spec = ggx(normal, H, roughness);
+                    float NdotV = max(dot(normal, viewDir), 0.0);
+                    float NdotL = max(dot(normal, lightDir), 0.0);
+                    float NdotH = max(dot(normal, halfDir), 0.0);
+                    float HdotV = max(dot(halfDir, viewDir), 0.0);
                     
-                    vec3 color = vec3(0.8) * diff + vec3(1.0) * ks * spec;
+                    vec3 F0 = mix(vec3(0.04), baseColor, metalness);
+                    
+                    // Cook-Torrance BRDF
+                    float D = ggxDistribution(NdotH, roughness);
+                    float G = geomSmith(NdotV, NdotL, roughness);
+                    vec3 F = fresnelSchlick(HdotV, F0);
+                    
+                    vec3 specular = (D * G * F) / (4.0 * NdotV * NdotL + 0.001);
+                    vec3 kD = (vec3(1.0) - F) * (1.0 - metalness);
+                    
+                    vec3 mainContrib = lightColor * (kD * baseColor / PI + specular) * NdotL;
+                    
+                    // Fill light (simple diffuse)
+                    vec3 fillDir = normalize(fillLightDirection);
+                    float fillDiff = max(dot(normal, fillDir), 0.0);
+                    vec3 fillContrib = fillLightColor * baseColor * fillDiff * (1.0 - metalness);
+                    
+                    vec3 color = mainContrib + fillContrib;
+                    
+                    // Gamma correction
+                    color = pow(color, vec3(1.0/2.2));
+                    
                     gl_FragColor = vec4(color, 1.0);
                 }
             `
@@ -127,51 +214,66 @@
                 varying vec3 vNormal;
                 varying vec3 vViewPosition;
                 uniform vec3 lightDirection;
+                uniform vec3 baseColor;
 
                 void main() {
                     vec3 normal = normalize(vNormal);
                     vec3 lightDir = normalize(lightDirection);
+                    vec3 viewDir = normalize(vViewPosition);
                     float intensity = dot(normal, lightDir);
                     
+                    // Edge detection
+                    float edge = dot(normal, viewDir);
+                    edge = edge < 0.3 ? 0.0 : 1.0;
+                    
                     vec3 color;
-                    if (intensity > 0.95) color = vec3(1.0);
-                    else if (intensity > 0.5) color = vec3(0.8);
-                    else if (intensity > 0.25) color = vec3(0.6);
-                    else color = vec3(0.4);
+                    if (intensity > 0.95) color = baseColor;
+                    else if (intensity > 0.5) color = baseColor * 0.8;
+                    else if (intensity > 0.25) color = baseColor * 0.6;
+                    else color = baseColor * 0.4;
+                    
+                    // Apply edge darkening
+                    color *= edge;
                     
                     gl_FragColor = vec4(color, 1.0);
                 }
             `
         };
 
-        // Create materials
+        // Create materials with improved uniforms
         function createShaderMaterial(shader, uniforms) {
             return new THREE.ShaderMaterial({
                 vertexShader: shader.vertexShader,
                 fragmentShader: shader.fragmentShader,
                 uniforms: {
                     ...uniforms,
-                    lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }
+                    lightDirection: { value: new THREE.Vector3(5, 5, 5).normalize() },
+                    lightColor: { value: new THREE.Vector3(1, 1, 1) },
+                    fillLightDirection: { value: new THREE.Vector3(-5, 3, -5).normalize() },
+                    fillLightColor: { value: new THREE.Vector3(0.564, 0.564, 1) },
+                    baseColor: { value: new THREE.Vector3(0.8, 0.8, 0.8) }
                 }
             });
         }
 
         const phongMaterial = createShaderMaterial(phongShader, {
             shininess: { value: 30.0 },
-            ks: { value: 1.0 }
+            ks: { value: 0.8 }
         });
 
-        const ggxMaterial = createShaderMaterial(ggxShader, {
+        const cookTorranceMaterial = createShaderMaterial(cookTorranceShader, {
             roughness: { value: 0.5 },
-            ks: { value: 1.0 }
+            metalness: { value: 0.0 }
         });
 
         const toonMaterial = createShaderMaterial(toonShader, {});
 
-        // Create spheres
-        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        // Create geometry with more detail
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        
+        // Create meshes
         const sphere1 = new THREE.Mesh(geometry, phongMaterial);
-        const sphere2 = new THREE.Mesh(geometry, ggxMaterial);
+        const sphere2 = new THREE.Mesh(geometry, cookTorranceMaterial);
         const sphere3 = new THREE.Mesh(geometry, toonMaterial);
 
         sphere1.position.x = -3;
@@ -181,24 +283,68 @@
         scene.add(sphere2);
         scene.add(sphere3);
 
-        // GUI
+        // Add ground plane
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(20, 20),
+            new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Add labels
+        const labels = ['Phong', 'Cook-Torrance', 'Toon'];
+        const labelElements = labels.map((text, i) => {
+            const div = document.createElement('div');
+            div.className = 'model-label';
+            div.textContent = text;
+            document.body.appendChild(div);
+            return div;
+        });
+
+        // GUI with more parameters
         const gui = new GUI();
+        
         const phongFolder = gui.addFolder('Phong');
         phongFolder.add(phongMaterial.uniforms.shininess, 'value', 1, 100).name('shininess');
         phongFolder.add(phongMaterial.uniforms.ks, 'value', 0, 1).name('specular');
+        
+        const cookTorranceFolder = gui.addFolder('Cook-Torrance');
+        cookTorranceFolder.add(cookTorranceMaterial.uniforms.roughness, 'value', 0, 1).name('roughness');
+        cookTorranceFolder.add(cookTorranceMaterial.uniforms.metalness, 'value', 0, 1).name('metalness');
 
-        const ggxFolder = gui.addFolder('GGX');
-        ggxFolder.add(ggxMaterial.uniforms.roughness, 'value', 0, 1).name('roughness');
-        ggxFolder.add(ggxMaterial.uniforms.ks, 'value', 0, 1).name('specular');
+        const lightFolder = gui.addFolder('Lighting');
+        lightFolder.add(mainLight.position, 'x', -10, 10).name('light X');
+        lightFolder.add(mainLight.position, 'y', 0, 10).name('light Y');
+        lightFolder.add(mainLight.position, 'z', -10, 10).name('light Z');
 
         // Animation
         function animate() {
             requestAnimationFrame(animate);
             
+            // Update controls
+            controls.update();
+            
             // Rotate spheres
-            sphere1.rotation.y += 0.01;
-            sphere2.rotation.y += 0.01;
-            sphere3.rotation.y += 0.01;
+            sphere1.rotation.y += 0.005;
+            sphere2.rotation.y += 0.005;
+            sphere3.rotation.y += 0.005;
+            
+            // Update light uniforms
+            const lightDir = mainLight.position.clone().normalize();
+            phongMaterial.uniforms.lightDirection.value.copy(lightDir);
+            cookTorranceMaterial.uniforms.lightDirection.value.copy(lightDir);
+            toonMaterial.uniforms.lightDirection.value.copy(lightDir);
+            
+            const spheres = [sphere1, sphere2, sphere3];
+            spheres.forEach((sphere, i) => {
+                const pos = sphere.position.clone();
+                pos.y += 1.5;
+                pos.project(camera);
+                labelElements[i].style.left = (pos.x * 0.5 + 0.5) * window.innerWidth + 'px';
+                labelElements[i].style.top = (-pos.y * 0.5 + 0.5) * window.innerHeight + 'px';
+            });
             
             renderer.render(scene, camera);
         }
@@ -210,7 +356,99 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        animate();
+        // Add visual helpers
+        const lightHelper = new THREE.DirectionalLightHelper(mainLight, 1);
+        scene.add(lightHelper);
+
+        // Create a simple animation curve for the light
+        let time = 0;
+        function animateLight() {
+            time += 0.005;
+            mainLight.position.x = Math.sin(time) * 5;
+            mainLight.position.z = Math.cos(time) * 5;
+            lightHelper.update();
+        }
+
+        // Enhanced animation loop with light movement
+        function enhancedAnimate() {
+            requestAnimationFrame(enhancedAnimate);
+            
+            // Update controls
+            controls.update();
+            
+            // Rotate spheres
+            sphere1.rotation.y += 0.005;
+            sphere2.rotation.y += 0.005;
+            sphere3.rotation.y += 0.005;
+
+            // Animate light position
+            animateLight();
+            
+            // Update light uniforms for all materials
+            const lightDir = mainLight.position.clone().normalize();
+            [phongMaterial, cookTorranceMaterial, toonMaterial].forEach(material => {
+                if (material.uniforms.lightDirection) {
+                    material.uniforms.lightDirection.value.copy(lightDir);
+                }
+            });
+            
+            // Update labels with world to screen projection
+            const spheres = [sphere1, sphere2, sphere3];
+            spheres.forEach((sphere, i) => {
+                const pos = sphere.position.clone();
+                pos.y += 1.5;
+                pos.project(camera);
+                labelElements[i].style.left = (pos.x * 0.5 + 0.5) * window.innerWidth + 'px';
+                labelElements[i].style.top = (-pos.y * 0.5 + 0.5) * window.innerHeight + 'px';
+            });
+            
+            renderer.render(scene, camera);
+        }
+
+        // Add keyboard controls for demo features
+        document.addEventListener('keydown', (event) => {
+            switch(event.key) {
+                case '1':
+                    // Reset camera position
+                    camera.position.set(0, 2, 8);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case '2':
+                    // Toggle light helper visibility
+                    lightHelper.visible = !lightHelper.visible;
+                    break;
+                case '3':
+                    // Reset all parameters to defaults
+                    phongMaterial.uniforms.shininess.value = 30.0;
+                    phongMaterial.uniforms.ks.value = 0.8;
+                    cookTorranceMaterial.uniforms.roughness.value = 0.5;
+                    cookTorranceMaterial.uniforms.metalness.value = 0.0;
+                    break;
+            }
+        });
+
+        // Start the animation
+        enhancedAnimate();
+
+        // Add info text
+        const info = document.createElement('div');
+        info.style.position = 'fixed';
+        info.style.bottom = '10px';
+        info.style.left = '10px';
+        info.style.color = 'white';
+        info.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        info.style.padding = '10px';
+        info.style.borderRadius = '5px';
+        info.style.fontFamily = 'Arial, sans-serif';
+        info.innerHTML = `
+            Controls:<br>
+            - Mouse: Orbit camera<br>
+            - Scroll: Zoom<br>
+            - 1: Reset camera<br>
+            - 2: Toggle light helper<br>
+            - 3: Reset parameters
+        `;
+        document.body.appendChild(info);
     </script>
 </body>
 </html>
