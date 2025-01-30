@@ -1,0 +1,216 @@
+// index.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reflectance Models Comparison</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        .controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h3>Reflectance Models Demo</h3>
+        <div id="modelParams"></div>
+    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        camera.position.z = 5;
+
+        // Light
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(1, 1, 1);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // Shader materials
+        const phongShader = {
+            vertexShader: `
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+
+                void main() {
+                    vNormal = normalMatrix * normal;
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    vViewPosition = -mvPosition.xyz;
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+                uniform vec3 lightDirection;
+                uniform float shininess;
+                uniform float ks;
+
+                void main() {
+                    vec3 normal = normalize(vNormal);
+                    vec3 lightDir = normalize(lightDirection);
+                    vec3 viewDir = normalize(vViewPosition);
+                    
+                    // Diffuse
+                    float diff = max(dot(normal, lightDir), 0.0);
+                    
+                    // Specular (Phong)
+                    vec3 reflectDir = reflect(-lightDir, normal);
+                    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+                    
+                    vec3 color = vec3(0.8) * diff + vec3(1.0) * ks * spec;
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `
+        };
+
+        const ggxShader = {
+            vertexShader: phongShader.vertexShader,
+            fragmentShader: `
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+                uniform vec3 lightDirection;
+                uniform float roughness;
+                uniform float ks;
+
+                float ggx(vec3 N, vec3 H, float roughness) {
+                    float a2 = roughness * roughness;
+                    float NdotH = max(dot(N, H), 0.0);
+                    float NdotH2 = NdotH * NdotH;
+                    float denom = NdotH2 * (a2 - 1.0) + 1.0;
+                    return a2 / (3.14159 * denom * denom);
+                }
+
+                void main() {
+                    vec3 normal = normalize(vNormal);
+                    vec3 lightDir = normalize(lightDirection);
+                    vec3 viewDir = normalize(vViewPosition);
+                    vec3 H = normalize(lightDir + viewDir);
+                    
+                    float diff = max(dot(normal, lightDir), 0.0);
+                    float spec = ggx(normal, H, roughness);
+                    
+                    vec3 color = vec3(0.8) * diff + vec3(1.0) * ks * spec;
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `
+        };
+
+        const toonShader = {
+            vertexShader: phongShader.vertexShader,
+            fragmentShader: `
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+                uniform vec3 lightDirection;
+
+                void main() {
+                    vec3 normal = normalize(vNormal);
+                    vec3 lightDir = normalize(lightDirection);
+                    float intensity = dot(normal, lightDir);
+                    
+                    vec3 color;
+                    if (intensity > 0.95) color = vec3(1.0);
+                    else if (intensity > 0.5) color = vec3(0.8);
+                    else if (intensity > 0.25) color = vec3(0.6);
+                    else color = vec3(0.4);
+                    
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `
+        };
+
+        // Create materials
+        function createShaderMaterial(shader, uniforms) {
+            return new THREE.ShaderMaterial({
+                vertexShader: shader.vertexShader,
+                fragmentShader: shader.fragmentShader,
+                uniforms: {
+                    ...uniforms,
+                    lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }
+                }
+            });
+        }
+
+        const phongMaterial = createShaderMaterial(phongShader, {
+            shininess: { value: 30.0 },
+            ks: { value: 1.0 }
+        });
+
+        const ggxMaterial = createShaderMaterial(ggxShader, {
+            roughness: { value: 0.5 },
+            ks: { value: 1.0 }
+        });
+
+        const toonMaterial = createShaderMaterial(toonShader, {});
+
+        // Create spheres
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const sphere1 = new THREE.Mesh(geometry, phongMaterial);
+        const sphere2 = new THREE.Mesh(geometry, ggxMaterial);
+        const sphere3 = new THREE.Mesh(geometry, toonMaterial);
+
+        sphere1.position.x = -3;
+        sphere3.position.x = 3;
+
+        scene.add(sphere1);
+        scene.add(sphere2);
+        scene.add(sphere3);
+
+        // GUI
+        const gui = new GUI();
+        const phongFolder = gui.addFolder('Phong');
+        phongFolder.add(phongMaterial.uniforms.shininess, 'value', 1, 100).name('shininess');
+        phongFolder.add(phongMaterial.uniforms.ks, 'value', 0, 1).name('specular');
+
+        const ggxFolder = gui.addFolder('GGX');
+        ggxFolder.add(ggxMaterial.uniforms.roughness, 'value', 0, 1).name('roughness');
+        ggxFolder.add(ggxMaterial.uniforms.ks, 'value', 0, 1).name('specular');
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate spheres
+            sphere1.rotation.y += 0.01;
+            sphere2.rotation.y += 0.01;
+            sphere3.rotation.y += 0.01;
+            
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
