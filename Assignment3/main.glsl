@@ -1,13 +1,16 @@
-#iChannel0 "file://Skyboxes/front.jpg"     // Using skybox texture as diffuse for now
-#iChannel1 "file://Skyboxes/front.jpg"     // Using same texture for normal calculation
-#iChannel2 "file://Skyboxes/front.jpg"     // Using same texture for height
+#iChannel0 "file://textures/diffuse.jpg"    // Diffuse texture
+#iChannel1 "file://textures/normal.jpg"     // Using same texture for normal calculation
+#iChannel2 "file://textures/height.jpg"     // Using same texture for height
 #iChannel3 "file://Skyboxes/left.jpg"      // Background skybox
 
 // Adjustable Parameters
-const float BUMP_STRENGTH = 0.2;        // Strength of bump mapping (0.0 to 1.0)
-const float NORMAL_STRENGTH = 1.0;      // Strength of normal mapping (0.0 to 2.0)
-const float SPECULAR_POWER = 32.0;      // Specular highlight sharpness
-const float AMBIENT_STRENGTH = 0.1;     // Ambient light intensity
+const float BUMP_STRENGTH = 0.15;       // Strength of bump mapping (0.0 to 1.0)
+const float NORMAL_STRENGTH = 1.2;      // Strength of normal mapping (0.0 to 2.0)
+const float SPECULAR_POWER = 24.0;      // Specular highlight sharpness
+const float AMBIENT_STRENGTH = 0.25;    // Ambient light intensity
+const float DIFFUSE_STRENGTH = 1.2;     // Control diffuse light intensity
+const float SPECULAR_INTENSITY = 0.2;   // Control specular intensity
+const float RIM_STRENGTH = 0.;        // Add rim lighting for edge highlights
 
 // Animation Parameters
 const vec3 ROTATION_SPEEDS = vec3(0.2, 0.3, 0.1);  // Rotation speed for each axis
@@ -163,19 +166,27 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         vec2 sphereUV = getSphereUV(p);
         vec3 albedo = texture(iChannel0, sphereUV).rgb;
         
-        // Calculate lighting
+        // Calculate lighting components
         float diff = max(dot(normal, lightDir), 0.0);
         float spec = pow(max(dot(normal, halfDir), 0.0), SPECULAR_POWER);
         
-        // Combine lighting components
+        // Add rim lighting (edge highlight)
+        float rim = 1.0 - max(dot(viewDir, normal), 0.0);
+        rim = pow(rim, 4.0) * RIM_STRENGTH;
+        
+        // Add fresnel effect to specular
+        float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 5.0);
+        
+        // Combine lighting components with new parameters
         vec3 ambient = AMBIENT_STRENGTH * albedo;
-        vec3 diffuse = diff * albedo * LIGHT_COLOR;
-        vec3 specular = spec * LIGHT_COLOR;
+        vec3 diffuse = DIFFUSE_STRENGTH * diff * albedo * LIGHT_COLOR;
+        vec3 specular = SPECULAR_INTENSITY * (spec + fresnel * 0.5) * LIGHT_COLOR;
+        vec3 rimLight = rim * LIGHT_COLOR;
         
-        vec3 color = ambient + diffuse + specular;
+        vec3 color = ambient + diffuse + specular + rimLight;
         
-        // Apply basic tone mapping
-        color = color / (color + vec3(1.0));
+        // Improved tone mapping (ACES-like)
+        color = color * (2.51 * color + 0.03) / (color * (2.43 * color + 0.59) + 0.14);
         
         fragColor = vec4(color, 1.0);
     } else {
