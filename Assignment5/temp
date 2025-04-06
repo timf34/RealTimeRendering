@@ -1,0 +1,4921 @@
+mixbox
+├── README.md
+├── javascript
+│   ├── README.md
+│   ├── examples
+│   │   ├── canvas.html
+│   │   ├── gradients.html
+│   │   ├── gradients.js
+│   │   ├── hello.html
+│   │   ├── mixer.html
+│   │   ├── mixer.js
+│   │   ├── mountains.html
+│   │   ├── mountains.js
+│   │   ├── p5js.html
+│   │   ├── palette.html
+│   │   ├── palette.js
+│   │   ├── splash.html
+│   │   ├── svg.html
+│   │   ├── threejs.html
+│   │   └── webgl.html
+│   ├── mixbox.esm.js
+│   └── mixbox.js
+├── python
+│   ├── README.md
+│   ├── examples
+│   │   ├── blender.py
+│   │   ├── hello.py
+│   │   ├── npcv.py
+│   │   ├── opengl.py
+│   │   └── pillow.py
+│   └── mixbox.py
+├── shaders
+│   ├── README.md
+│   ├── mixbox.glsl
+│   ├── mixbox.hlsl
+│   ├── mixbox.metal
+│   ├── mixbox.osl
+│   └── mixbox_lut.png
+└── webgl
+    ├── README.md
+    └── example.html
+
+
+# README.md
+# Mixbox: Pigment-Based Color Mixing
+
+<p align="center">
+  <img src="https://scrtwpns.com/mixbox/teaser.jpg"/>
+</p>
+
+Mixbox is a new blending method for natural color mixing. It produces saturated gradients with hue shifts and natural secondary colors during blending. Yellow and blue make green. The interface is simple - RGB in, RGB out. Internally, Mixbox treats colors as real-life pigments using the Kubelka & Munk theory to predict realistic color behavior. That way, colors act like actual paints and bring more vibrance and intuition into digital painting.
+
+* Paper: https://scrtwpns.com/mixbox.pdf<br>
+* Video: https://youtu.be/ATzVPVNp1qA<br>
+* Talk: https://youtu.be/_qa5iWdfNKg<br>
+* Demo: https://scrtwpns.com/mixbox/painter<br>
+
+Mixbox is shipping in Rebelle 5 Pro as the [Rebelle Pigments](https://www.escapemotions.com/products/rebelle/about) feature and in the [Flip Fluids](https://flipfluids.com/) addon for Blender.
+
+## Usage
+- [C / C++](cpp): `#include "mixbox.h"` and build `mixbox.cpp` together with your project
+- [C#](csharp): use Mixbox package from NuGet `https://www.nuget.org/packages/Mixbox/2.0.0`
+- [Java](java): add `implementation 'com.scrtwpns:mixbox:2.0.0'` to your Gradle
+- [JavaScript](javascript): `<script src="https://scrtwpns.com/mixbox.js">`
+- [Node](javascript): `npm install mixbox`
+- [Python](python): `pip install pymixbox`
+- [Rust](rust): add `mixbox = "2.0.0"` to your Cargo.toml
+- [Unity](unity): add package from git url `git://github.com/scrtwpns/mixbox.git#upm`
+- [Godot](godot): copy `godot\addons` to the root of your project
+- [Shaders](shaders): load `mixbox_lut.png` as texture and include `mixbox.glsl`/`.hlsl`/`.metal` code into your shader
+
+## Pigment Colors
+| Pigment |  | RGB | Float RGB | Linear RGB |
+| --- | --- |:----:|:----:|:----:|
+| Cadmium Yellow | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_yellow.png"/> | 254, 236, 0  | 0.996, 0.925, 0.0 | 0.991, 0.839, 0.0 |
+| Hansa Yellow | <img src="https://scrtwpns.com/mixbox/pigments/hansa_yellow.png"/> | 252, 211, 0  | 0.988, 0.827, 0.0 | 0.973, 0.651, 0.0 |
+| Cadmium Orange | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_orange.png"/> | 255, 105, 0  | 1.0, 0.412, 0.0 | 1.0, 0.141, 0.0 |
+| Cadmium Red | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_red.png"/> | 255, 39, 2  | 1.0, 0.153, 0.008 | 1.0, 0.02, 0.001 |
+| Quinacridone Magenta | <img src="https://scrtwpns.com/mixbox/pigments/quinacridone_magenta.png"/> | 128, 2, 46  | 0.502, 0.008, 0.18 | 0.216, 0.001, 0.027 |
+| Cobalt Violet | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_violet.png"/> | 78, 0, 66  | 0.306, 0.0, 0.259 | 0.076, 0.0, 0.054 |
+| Ultramarine Blue | <img src="https://scrtwpns.com/mixbox/pigments/ultramarine_blue.png"/> | 25, 0, 89  | 0.098, 0.0, 0.349 | 0.01, 0.0, 0.1 |
+| Cobalt Blue | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_blue.png"/> | 0, 33, 133  | 0.0, 0.129, 0.522 | 0.0, 0.015, 0.235 |
+| Phthalo Blue | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_blue.png"/> | 13, 27, 68  | 0.051, 0.106, 0.267 | 0.004, 0.011, 0.058 |
+| Phthalo Green | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_green.png"/> | 0, 60, 50  | 0.0, 0.235, 0.196 | 0.0, 0.045, 0.032 |
+| Permanent Green | <img src="https://scrtwpns.com/mixbox/pigments/permanent_green.png"/> | 7, 109, 22  | 0.027, 0.427, 0.086 | 0.002, 0.153, 0.008 |
+| Sap Green | <img src="https://scrtwpns.com/mixbox/pigments/sap_green.png"/> | 107, 148, 4  | 0.42, 0.58, 0.016 | 0.147, 0.296, 0.001 |
+| Burnt Sienna | <img src="https://scrtwpns.com/mixbox/pigments/burnt_sienna.png"/> | 123, 72, 0  | 0.482, 0.282, 0.0 | 0.198, 0.065, 0.0 |
+
+## C / C++
+```c++
+#include <stdio.h>
+#include "mixbox.h"
+
+int main() {
+  unsigned char r1 =   0, g1 = 33,  b1 = 133; // blue
+  unsigned char r2 = 252, g2 = 211, b2 = 0;   // yellow
+  float t = 0.5;
+  unsigned char r, g, b;
+
+  mixbox_lerp(r1, g1, b1,  // first color
+              r2, g2, b2,  // second color
+              t,           // mixing ratio
+              &r, &g, &b); // result
+
+  printf("%d %d %d\n", r, g, b);
+}
+```
+
+## GLSL Shader
+```glsl
+#ifdef GL_ES
+precision highp float;
+#endif
+
+uniform sampler2D mixbox_lut; // bind the "mixbox_lut.png" texture here
+
+#include "mixbox.glsl" // paste the contents of mixbox.glsl here
+
+void main(void) {
+  vec3 rgb1 = vec3(0, 0.129, 0.522); // blue
+  vec3 rgb2 = vec3(0.988, 0.827, 0); // yellow
+  float t = 0.5;                     // mixing ratio
+
+  vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+
+  gl_FragColor = vec4(rgb, 1.0);
+}
+```
+
+## Rust
+```rust
+fn main() {
+    let rgb1 = [0, 33, 133];  // blue
+    let rgb2 = [252, 211, 0]; // yellow
+    let t = 0.5;              // mixing ratio
+
+    let [r, g, b] = mixbox::lerp(&rgb1, &rgb2, t);
+
+    println!("{} {} {}", r, g, b);
+}
+```
+
+## Python
+```python
+import mixbox
+
+rgb1 = (0, 33, 133)  # blue
+rgb2 = (252, 211, 0) # yellow
+t = 0.5              # mixing ratio
+
+rgb_mix = mixbox.lerp(rgb1, rgb2, t)
+
+print(rgb_mix)
+```
+
+## JavaScript
+```html
+<html>
+  <body>
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+      var rgb1 = "rgb(0, 33, 133)";  // blue
+      var rgb2 = "rgb(252, 211, 0)"; // yellow
+      var t = 0.5;                   // mixing ratio
+
+      var mixed  = mixbox.lerp(rgb1, rgb2, t);
+
+      document.body.style.background = mixed;
+    </script>
+  </body>
+</html>
+```
+## Node
+```javascript
+import mixbox from 'mixbox';
+
+let rgb1 = "rgb(0, 33, 133)";  // blue
+let rgb2 = "rgb(252, 211, 0)"; // yellow
+let t = 0.5;                   // mixing ratio
+
+let mixed  = mixbox.lerp(rgb1, rgb2, t);
+
+console.log(mixed);
+```
+
+## Java
+```java
+import java.awt.Color;
+import com.scrtwpns.Mixbox;
+
+class HelloMixbox {
+  public static void main(String[] args) {
+    Color color1 = new Color(0, 33, 133);  // blue
+    Color color2 = new Color(252, 211, 0); // yellow
+    float t = 0.5f;                        // mixing ratio
+
+    Color colorMix = new Color(Mixbox.lerp(color1.getRGB(), color2.getRGB(), t));
+
+    System.out.print(colorMix);
+  }
+}
+```
+
+## Android
+```java
+package com.example.hellomixbox;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.View;
+import android.graphics.Color;
+
+import com.scrtwpns.Mixbox;
+
+public class MainActivity extends Activity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        int color1 = Color.rgb(0, 33, 133);  // blue
+        int color2 = Color.rgb(252, 211, 0); // yellow
+        float t = 0.5f;                      // mixing ratio
+
+        int colorMix = Mixbox.lerp(color1, color2, t);
+
+        View view = new View(this);
+        view.setBackgroundColor(colorMix);
+        setContentView(view);
+    }
+}
+```
+
+## C#
+```csharp
+using System.Drawing;
+using Scrtwpns.Mixbox;
+
+public class HelloMixbox
+{
+    public static void Main(string[] args)
+    {
+        Color color1 = Color.FromArgb(0, 33, 133);  // blue
+        Color color2 = Color.FromArgb(252, 211, 0); // yellow
+        float t = 0.5f;                             // mixing ratio
+
+        Color colorMix = Color.FromArgb(Mixbox.Lerp(color1.ToArgb(), color2.ToArgb(), t));
+
+        System.Console.WriteLine(colorMix);
+    }
+}
+```
+
+## Unity
+```csharp
+using UnityEngine;
+using Scrtwpns.Mixbox;
+
+public class NewBehaviourScript : MonoBehaviour
+{
+    void Start()
+    {
+        Color color1 = new Color(0.0f, 0.129f, 0.522f); // blue
+        Color color2 = new Color(0.988f, 0.827f, 0.0f); // yellow
+        float t = 0.5f;                                 // mixing ratio
+
+        Color colorMix = Mixbox.Lerp(color1, color2, t);
+
+        Debug.Log(colorMix);
+    }
+}
+```
+
+## Unity Shader
+```ShaderLab
+Shader "MixboxHelloShader"
+{
+    Properties
+    {
+        _MixboxLUT ("Mixbox LUT", 2D) = "white" {} // assign "Packages/Mixbox/Textures/MixboxLUT.png"
+
+        _Color1 ("Color 1", Color) = (0, 0.129, 0.522, 1) // blue
+        _Color2 ("Color 2", Color) = (0.988, 0.827, 0, 1) // yellow
+    }
+    SubShader
+    {
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "UnityCG.cginc"
+
+            sampler2D _MixboxLUT;
+            #include "Packages/com.scrtwpns.mixbox/ShaderLibrary/Mixbox.cginc"
+
+            fixed4 _Color1;
+            fixed4 _Color2;
+
+            struct appdata { float4 vertex : POSITION; float2 uv : TEXCOORD0; };
+            struct v2f { float2 uv : TEXCOORD0; float4 vertex : SV_POSITION; };
+
+            v2f vert (appdata v)
+            {
+                v2f o;
+                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.uv = v.uv;
+                return o;
+            }
+
+            fixed4 frag (v2f i) : SV_Target
+            {
+                fixed4 mixedColor = MixboxLerp(_Color1, _Color2, i.uv.x);
+                return mixedColor;
+            }
+            ENDCG
+        }
+    }
+}
+```
+
+## Unity Shader Graph
+<p align="center">
+  <img src="https://scrtwpns.com/mixbox/unity/shadergraph_.png"/>
+</p>
+
+## Godot
+```gdscript
+var Mixbox = preload("res://addons/mixbox/mixbox.gd")
+
+var color1 = Color(0.0, 0.129, 0.522) # blue
+var color2 = Color(0.988, 0.827, 0.0) # yellow
+var t = 0.5                           # mixing ratio
+
+var color_mix = Mixbox.lerp(color1, color2, t)
+
+print(color_mix)
+```
+
+## Godot Shader
+```glsl
+shader_type canvas_item;
+
+uniform sampler2D mixbox_lut; // attach "addons/mixbox/mixbox_lut.png" here
+
+uniform vec4 color1 : hint_color = vec4(0.0, 0.129, 0.522, 1.0); // blue
+uniform vec4 color2 : hint_color = vec4(0.988, 0.827, 0.0, 1.0); // yellow
+
+#include "addons/mixbox/mixbox.gdshaderinc"
+
+void fragment() {
+    COLOR = mixbox_lerp(color1, color2, UV.x);
+}
+```
+
+## Godot VisualShader
+<p align="center">
+  <img src="https://scrtwpns.com/mixbox/godot/visualshader_.png"/>
+</p>
+
+## WebGL
+```html
+<script src="https://scrtwpns.com/mixbox.js"></script>
+```
+```javascript
+var shader = `
+  precision highp float;
+
+  uniform sampler2D mixbox_lut; // bind mixbox.lutTexture(gl) here
+
+  #include "mixbox.glsl"
+
+  void main(void) {
+    vec3 rgb1 = vec3(0, 0.129, 0.522); // blue
+    vec3 rgb2 = vec3(0.988, 0.827, 0); // yellow
+    float t = 0.5;                     // mixing ratio
+
+    vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+
+    gl_FragColor = vec4(rgb, 1.0);
+  }
+`;
+
+shader = shader.replace('#include "mixbox.glsl"', mixbox.glsl());
+```
+```javascript
+gl.useProgram(shaderProgram);
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D, mixbox.lutTexture(gl));
+gl.uniform1i(gl.getUniformLocation(shaderProgram, "mixbox_lut"), 0);
+```
+
+## Examples
+
+| Gradients | Mountains | Palette Snakes |
+|:---:|:---:|:---:|
+| <a href="https://scrtwpns.com/mixbox/examples/gradients.html"><img src="https://scrtwpns.com/mixbox/examples/gradients.png"/></a> | <a href="https://scrtwpns.com/mixbox/examples/mountains.html"><img src="https://scrtwpns.com/mixbox/examples/mountains.png"/></a> | <a href="https://scrtwpns.com/mixbox/examples/palette.html"><img src="https://scrtwpns.com/mixbox/examples/palette.png"/></a> |
+|  [source code](javascript/examples/gradients.js) |  [source code](javascript/examples/mountains.js) |  [source code](javascript/examples/palette.js) |
+
+| Splash Art | Paint Mixer | Pigment Fluids |
+|:---:|:---:|:---:|
+| <a href="https://scrtwpns.com/mixbox/examples/splash.html"><img src="https://scrtwpns.com/mixbox/examples/splash.png"/></a> | <a href="https://scrtwpns.com/mixbox/examples/mixer.html"><img src="https://scrtwpns.com/mixbox/examples/mixer.png"/></a> | <a href="https://scrtwpns.com/mixbox/fluids"><img src="https://scrtwpns.com/mixbox/examples/fluids.png"/></a> |
+|  [source code](javascript/examples/splash.html) |  [source code](javascript/examples/mixer.js) |  [source code](https://scrtwpns.com/mixbox/fluids/script.js) |
+
+## Painter
+<p align="center">
+  <a href="https://scrtwpns.com/mixbox/painter"><img src="https://scrtwpns.com/mixbox/painter_git.jpg"/></a>
+</p>
+This painting app runs two color mixing implementations in parallel: one based on Mixbox and the other that performs ordinary RGB mixing. The app allows switching between them on the fly, showing the differences between pigment-based mixing and the normal RGB mixing. To launch the painter in your browser, please <a href="https://scrtwpns.com/mixbox/painter">click here</a>.
+
+## License
+Copyright (c) 2022, Secret Weapons. All rights reserved.<br>
+Mixbox is provided under the CC BY-NC 4.0 license for non-commercial use only.<br>
+If you want to obtain commercial license, please contact: mixbox@scrtwpns.com
+
+# javascript\README.md
+# Mixbox for Javascript
+
+```html
+<script src="https://scrtwpns.com/mixbox.js"></script>
+```
+```javascript
+import mixbox from 'https://scrtwpns.com/mixbox.esm.js'; // for ES6 module use this instead
+```
+
+### Node
+```
+npm install mixbox
+```
+```javascript
+import mixbox from 'mixbox';
+```
+
+## Usage
+```javascript
+var rgb1 = "rgb(0, 33, 133)";  // blue
+var rgb2 = "rgb(252, 211, 0)"; // yellow
+var t = 0.5;                   // mixing ratio
+
+var mixed  = mixbox.lerp(rgb1, rgb2, t);
+
+console.log(mixed);
+```
+
+## Mixing Multiple Colors
+```javascript
+var z1 = mixbox.rgbToLatent(rgb1);
+var z2 = mixbox.rgbToLatent(rgb2);
+var z3 = mixbox.rgbToLatent(rgb3);
+
+var zMix = new Array(mixbox.LATENT_SIZE);
+
+for (var i = 0; i < zMix.length; i++) { // mix:
+    zMix[i] = (0.3*z1[i] +       // 30% of rgb1
+               0.6*z2[i] +       // 60% of rgb2
+               0.1*z3[i]);       // 10% of rgb3
+}
+
+var rgbMix = mixbox.latentToRgb(zMix);
+```
+
+## Pigment Colors
+| Pigment |  | RGB | Float RGB | Linear RGB |
+| --- | --- |:----:|:----:|:----:|
+| Cadmium Yellow | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_yellow.png"/> | 254, 236, 0  | 0.996, 0.925, 0.0 | 0.991, 0.839, 0.0 |
+| Hansa Yellow | <img src="https://scrtwpns.com/mixbox/pigments/hansa_yellow.png"/> | 252, 211, 0  | 0.988, 0.827, 0.0 | 0.973, 0.651, 0.0 |
+| Cadmium Orange | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_orange.png"/> | 255, 105, 0  | 1.0, 0.412, 0.0 | 1.0, 0.141, 0.0 |
+| Cadmium Red | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_red.png"/> | 255, 39, 2  | 1.0, 0.153, 0.008 | 1.0, 0.02, 0.001 |
+| Quinacridone Magenta | <img src="https://scrtwpns.com/mixbox/pigments/quinacridone_magenta.png"/> | 128, 2, 46  | 0.502, 0.008, 0.18 | 0.216, 0.001, 0.027 |
+| Cobalt Violet | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_violet.png"/> | 78, 0, 66  | 0.306, 0.0, 0.259 | 0.076, 0.0, 0.054 |
+| Ultramarine Blue | <img src="https://scrtwpns.com/mixbox/pigments/ultramarine_blue.png"/> | 25, 0, 89  | 0.098, 0.0, 0.349 | 0.01, 0.0, 0.1 |
+| Cobalt Blue | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_blue.png"/> | 0, 33, 133  | 0.0, 0.129, 0.522 | 0.0, 0.015, 0.235 |
+| Phthalo Blue | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_blue.png"/> | 13, 27, 68  | 0.051, 0.106, 0.267 | 0.004, 0.011, 0.058 |
+| Phthalo Green | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_green.png"/> | 0, 60, 50  | 0.0, 0.235, 0.196 | 0.0, 0.045, 0.032 |
+| Permanent Green | <img src="https://scrtwpns.com/mixbox/pigments/permanent_green.png"/> | 7, 109, 22  | 0.027, 0.427, 0.086 | 0.002, 0.153, 0.008 |
+| Sap Green | <img src="https://scrtwpns.com/mixbox/pigments/sap_green.png"/> | 107, 148, 4  | 0.42, 0.58, 0.016 | 0.147, 0.296, 0.001 |
+| Burnt Sienna | <img src="https://scrtwpns.com/mixbox/pigments/burnt_sienna.png"/> | 123, 72, 0  | 0.482, 0.282, 0.0 | 0.198, 0.065, 0.0 |
+
+## Mixbox in WebGL
+```javascript
+var shader = `
+  precision highp float;
+
+  // uncomment the following line if you work in linear space
+  // #define MIXBOX_COLORSPACE_LINEAR
+
+  uniform sampler2D mixbox_lut; // bind mixbox.lutTexture(gl) here
+
+  #include "mixbox.glsl"
+
+  void main(void) {
+    vec3 rgb1 = vec3(0, 0.129, 0.522); // blue
+    vec3 rgb2 = vec3(0.988, 0.827, 0); // yellow
+    float t = 0.5;                     // mixing ratio
+
+    vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+
+    gl_FragColor = vec4(rgb, 1.0);
+  }
+`;
+
+shader = shader.replace('#include "mixbox.glsl"', mixbox.glsl());
+```
+
+```javascript
+gl.useProgram(shaderProgram);
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D, mixbox.lutTexture(gl));
+gl.uniform1i(gl.getUniformLocation(shaderProgram, "mixbox_lut"), 0);
+```
+
+## Examples
+
+| Gradients | Mountains | Palette Snakes |
+|:---:|:---:|:---:|
+| <a href="https://scrtwpns.com/mixbox/examples/gradients.html"><img src="https://scrtwpns.com/mixbox/examples/gradients.png"/></a> | <a href="https://scrtwpns.com/mixbox/examples/mountains.html"><img src="https://scrtwpns.com/mixbox/examples/mountains.png"/></a> | <a href="https://scrtwpns.com/mixbox/examples/palette.html"><img src="https://scrtwpns.com/mixbox/examples/palette.png"/></a> |
+|  [source code](examples/gradients.js) |  [source code](examples/mountains.js) |  [source code](examples/palette.js) |
+
+| Splash Art | Paint Mixer | Pigment Fluids |
+|:---:|:---:|:---:|
+| <a href="https://scrtwpns.com/mixbox/examples/splash.html"><img src="https://scrtwpns.com/mixbox/examples/splash.png"/></a> | <a href="https://scrtwpns.com/mixbox/examples/mixer.html"><img src="https://scrtwpns.com/mixbox/examples/mixer.png"/></a> | <a href="https://scrtwpns.com/mixbox/fluids"><img src="https://scrtwpns.com/mixbox/examples/fluids.png"/></a> |
+|  [source code](examples/splash.html) |  [source code](examples/mixer.js) |  [source code](https://scrtwpns.com/mixbox/fluids/script.js) |
+
+
+## License
+Copyright (c) 2022, Secret Weapons. All rights reserved.<br>
+Mixbox is provided under the CC BY-NC 4.0 license for non-commercial use only.<br>
+If you want to obtain commercial license, please contact: mixbox@scrtwpns.com
+
+# javascript\examples\canvas.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <canvas id="canvas" width="720" height="128"></canvas>
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext("2d");
+      var color1 = "rgb(0, 33, 133)";  // blue
+      var color2 = "rgb(252, 211, 0)"; // yellow
+      var n = canvas.width;
+      for (var i = 0; i < n; i++) {
+        context.fillStyle = mixbox.lerp(color1, color2, i / (n - 1));
+        context.fillRect(i, 0, 1, canvas.height);
+      }
+    </script>
+  </body>
+</html>
+
+# javascript\examples\gradients.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">  
+  </head>
+
+  <body>
+    <!-- Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <!-- P5js -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
+    <!-- Mixbox -->
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <!-- Code -->
+    <script src="gradients.js"></script>
+
+    <div class="container-fluid">
+      <div class="row justify-content-center align-items-center text-center py-5 my-3">
+        <div class="col-12"><main></main></div>
+      </div>
+      <div class="row justify-content-center align-items-center text-secondary text-center">
+        <div class="col-12">
+          <div class="d-inline" id="picker-A"></div>
+          <div class="d-inline" id="picker-B"></div>
+          <h3 class="pt-3">Pick colors</h3>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+# javascript\examples\gradients.js
+let colorPicker_A;
+let colorPicker_B;
+let color_A;
+let color_B;
+
+function setup() {
+  createCanvas(650, 465);
+  background(255);
+  colorMode(RGB);
+
+  colorPicker_A = createColorPicker('#002185');
+  colorPicker_A.parent('picker-A');
+  color_A = colorPicker_A.color();
+
+  colorPicker_B = createColorPicker('#fcd200');
+  colorPicker_B.parent('picker-B');
+  color_B = colorPicker_B.color();
+
+  drawGradient("Mixbox", color_A, color_B, 50, 200, 65, 465);
+  drawGradient("RGB", color_A, color_B, 250, 400, 65, 465);
+  drawGradient("OkLab", color_A, color_B, 450, 600, 65, 465);
+
+}
+
+function draw() {
+
+  if(color_A.toString() != colorPicker_A.color().toString() || color_B.toString() != colorPicker_B.color().toString())
+  {
+    background(255);
+
+    color_A = colorPicker_A.color();
+    color_B = colorPicker_B.color();
+
+    drawGradient("Mixbox", color_A, color_B, 50, 200, 65, 465);
+    drawGradient("RGB", color_A, color_B, 250, 400, 65, 465);
+    drawGradient("OkLab", color_A, color_B, 450, 600, 65, 465);
+  }
+
+}
+
+function drawGradient(method, color1, color2, x1, x2, y1, y2)
+{
+  textSize(28);
+  textStyle(BOLD);
+  fill(79, 118, 123);
+  text(method, x1 + (x2-x1)/2 - textWidth(method)/2, y1-30);
+  let mixedColor;
+
+  for (let y = y1; y <= y2; y++)
+    {
+      let t = (y-y1)/(y2-y1);
+      if(match(method, 'Mixbox'))
+      {
+        mixedColor = mixbox.lerp(color1, color2, t);
+      }
+      else if(match(method, 'RGB'))
+      {
+        mixedColor = lerpColor(color1, color2, t);
+      }
+      else if(match(method, 'OkLab'))
+      {
+        let c1 = [red(color1), green(color1), blue(color1)];
+        let c2 = [red(color2), green(color2), blue(color2)];
+        let tmp = linear_to_rgb (oklab_to_linear_srgb(linearMix(linear_srgb_to_oklab(rgb_to_linear(c1)),linear_srgb_to_oklab(rgb_to_linear(c2)),t)));
+        mixedColor = color(tmp[0], tmp[1], tmp[2]);
+      }
+      strokeWeight(2);
+      stroke(mixedColor);
+      line(x1, y, x2, y);
+      noStroke();
+    }
+}
+
+/* THE FOLLOWING CODE IS HANDLING THE CONVERSION TO OkLAB SPACE */
+/* https://bottosson.github.io/posts/oklab/ */
+
+function linear_srgb_to_oklab(c)
+{
+  let l = 0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2];
+	let m = 0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2];
+	let s = 0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2];
+
+  let l_ = Math.cbrt(l);
+  let m_ = Math.cbrt(m);
+  let s_ = Math.cbrt(s);
+
+  var lab = [ 0.2104542553*l_ + 0.7936177850*m_ - 0.0040720468*s_,
+              1.9779984951*l_ - 2.4285922050*m_ + 0.4505937099*s_,
+              0.0259040371*l_ + 0.7827717662*m_ - 0.8086757660*s_ ];
+
+  return lab;
+}
+
+function oklab_to_linear_srgb(c)
+{
+    let l_ = c[0] + 0.3963377774 * c[1] + 0.2158037573 * c[2];
+    let m_ = c[0] - 0.1055613458 * c[1] - 0.0638541728 * c[2];
+    let s_ = c[0] - 0.0894841775 * c[1] - 1.2914855480 * c[2];
+
+    let l = l_*l_*l_;
+    let m = m_*m_*m_;
+    let s = s_*s_*s_;
+
+    var lrgb =  [ 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+                 -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+                 -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+    return lrgb;
+}
+
+function rgb_to_linear(rgb) // receiving Color object, returning array of 3 linear RGB values in range 0-1
+{
+  var res = [0,0,0];
+  var float_rgb = [rgb[0]/255, rgb[1]/255, rgb[2]/255];
+  for (let i = 0; i < 3; ++i)
+  {
+    let c = float_rgb[i];
+    if (c >= 0.04045)
+        res[i] = pow((c + 0.055)/(1 + 0.055), 2.4);
+    else
+        res[i] = c / 12.92;
+  }
+  return res;
+}
+
+function linear_to_rgb(lrgb) // receiving array of 3 linear RGB values, returning an array of gamma encoded RGB values in range 0-255
+{
+  var res = [0,0,0];
+  for (let i = 0; i < 3; ++i)
+  {
+    let c = lrgb[i];
+    if (c >= 0.0031308)
+        res[i] = 1.055 * pow(c, 1.0/2.4) - 0.055;
+    else
+        res[i] = 12.92 * c;
+  }
+  return [round(res[0]*255), round(res[1]*255), round(res[2]*255)];
+}
+
+function linearMix (a, b, t)
+{
+  var res = [0,0,0];
+  for(let i=0; i<3; i++)
+  {
+    res[i] = a[i] * (1-t) + b[i]*t;
+  }
+  return res;
+}
+
+# javascript\examples\hello.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <div id="blue" class="box">BLUE</div>
+    <div id="mixed" class="box">MIXED</div>
+    <div id="yellow" class="box">YELLOW</div>    
+
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+        var blue = "rgb(0, 33, 133)";
+        var yellow = "rgb(252, 211, 0)";
+        var t = 0.5;
+        var mixed  = mixbox.lerp(blue, yellow, t);
+
+        document.getElementById("blue").style.backgroundColor = blue;
+        document.getElementById("mixed").style.backgroundColor = mixed;
+        document.getElementById("yellow").style.backgroundColor = yellow;           
+    </script>
+
+    <style>
+        .box{width: 200px; height: 200px; padding: 10px; margin: 10px; color: white; font-weight: bold;}
+    </style>
+  </body>
+</html>
+
+# javascript\examples\mixer.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <!-- P5js -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
+    <!-- Mixbox -->
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <!-- Code -->
+    <script src="mixer.js"></script>
+
+    <div align="center" style="margin-top: 50px;">    
+      <main> </main>
+    </div> 
+  </body>
+</html>
+
+# javascript\examples\mixer.js
+let width = 650;
+let height = 650;
+let center_x = width/2;
+let center_y = height/2;
+let outer_radius = 300;
+let inner_radius = 100;
+let circle_radius = 45;
+var colors = [];
+var centers_outside = [];
+var centers_inside = [];
+var sliders_pos = [];
+var mix_t = [];
+let numPigments = 0;
+let step = 0;
+let dragged = -1;
+
+function setup() {
+  createCanvas(650, 650);
+  background(255);
+  colorMode(RGB);
+  stroke(125);
+  strokeWeight(3);
+
+  colors = [color( 255,236,4), color( 252,211,0), color( 255,105,0), color( 225,35,1), color( 191,0,18), color( 128,2,46), color( 78,1,66), color( 74,0,101), color( 16,31,61), color( 13, 27, 68), color( 25,  0, 89), color( 8,34,138), color( 12, 69,118), color(  6, 54, 51), color( 0,74,41), color( 84,50,36), color( 58,39,0), color(  13,9,1), color(249,250,249)];
+
+  numPigments = colors.length;
+  step = TWO_PI / numPigments;
+
+  for(let i=0; i<numPigments; i++)
+  {
+    let x0 = center_x + sin(i * step) * inner_radius;
+    let x1 = center_x + sin(i * step) * outer_radius;
+    let y0 = center_y + cos(i * step) * inner_radius;
+    let y1 = center_y + cos(i * step) * outer_radius;
+
+    centers_inside.push( createVector(x0, y0));
+    centers_outside.push(createVector(x1, y1));
+    mix_t.push(0);
+    sliders_pos.push(createVector(x1,y1));
+
+    fill(colors[i]);
+    line(x0, y0, x1, y1);
+    ellipse(x1, y1, circle_radius, circle_radius);
+    fill(200);
+    ellipse(center_x, center_y, inner_radius*2, inner_radius*2);
+  }
+
+}
+
+function draw() {
+
+  if(dragged > -1)
+  {
+    mix_t[dragged] = get_t(centers_outside[dragged].x, centers_outside[dragged].y, centers_inside[dragged].x, centers_inside[dragged].y, mouseX, mouseY);
+    sliders_pos[dragged] = createVector(centers_outside[dragged].x - sin(dragged * step) * mix_t[dragged] * (outer_radius-inner_radius),
+                                        centers_outside[dragged].y - cos(dragged * step) * mix_t[dragged] * (outer_radius-inner_radius));
+
+    background(255);
+    let weights = 0;
+
+    for(let i=0; i<numPigments; i++)
+    {
+      line(centers_inside[i].x, centers_inside[i].y, centers_outside[i].x, centers_outside[i].y);
+      fill(colors[i]);
+      ellipse(sliders_pos[i].x, sliders_pos[i].y, circle_radius, circle_radius);
+
+      weights += mix_t[i];
+    }
+
+    if(weights > 0.000001)
+    {
+      let latent_mix = [0,0,0,0,0,0,0];
+      for(let j=0; j<numPigments; j++)
+      {
+        if(mix_t[j]>0.000001)
+        {
+          let latent = mixbox.rgbToLatent(colors[j]);
+          let t = mix_t[j]/weights;
+          for(let k=0; k<latent.length; k++)
+          {
+            latent_mix[k] += latent[k] * t;
+          }
+        }
+      }
+      let mixed_color = mixbox.latentToRgb(latent_mix);
+      fill(mixed_color);
+      ellipse(center_x, center_y, inner_radius*2, inner_radius*2);
+    }
+    else
+    {
+      fill(200);
+      ellipse(center_x, center_y, inner_radius*2, inner_radius*2);
+    }
+
+  }
+
+}
+
+function mousePressed()
+{
+  for(let i=0; i<numPigments; i++)
+   {
+     if(mouseX > sliders_pos[i].x - circle_radius/2 &&
+        mouseX < sliders_pos[i].x + circle_radius/2 &&
+        mouseY > sliders_pos[i].y - circle_radius/2 &&
+        mouseY < sliders_pos[i].y + circle_radius/2)
+     {
+       dragged = i;
+     }
+   }
+}
+
+function mouseReleased()
+{
+  dragged = -1;
+}
+
+function get_t (ax, ay, bx, by, qx, qy)
+{
+  let u = createVector(bx-ax, by-ay);
+  let v = createVector(qx-ax, qy-ay);
+
+  let d = (u.x*v.x + u.y*v.y) / u.mag();
+  let t = d/u.mag();
+
+  return clamp(t, 0.0, 1.0);
+}
+
+function clamp(x, lowerlimit, upperlimit) {
+  if (x<lowerlimit) {return lowerlimit;}
+  else if(x>upperlimit){return upperlimit;}
+  else {return x;}
+}
+
+# javascript\examples\mountains.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <!-- P5js -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
+    <!-- Mixbox -->
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <!-- Code -->
+    <script src="mountains.js"></script>
+    
+    <div align="center" style="margin-top: 50px;">
+      <main></main>
+    </div>
+  </body>
+</html>
+
+# javascript\examples\mountains.js
+let magenta, yellow, phthalo_blue, titanium_white, phthalo_medium;
+
+function setup()
+{
+  createCanvas(800, 650);
+  background(80);
+  colorMode(RGB);
+  strokeWeight(2);
+
+  magenta = color(128,2,46);
+  yellow = color(255,236,4);
+  phthalo_blue = color(13,27,68);
+  titanium_white = color(249,251,249);
+  phthalo_medium = color(mixbox.lerp(phthalo_blue, titanium_white, 0.5));
+}
+
+function draw()
+{
+  for(let y=0; y<height; y++ )
+  {
+    let t = y*0.8/(height/2.3);
+    let mix_col = mixbox.lerp(magenta, yellow,t);
+    stroke(mix_col);
+    line(0, y, width, y);
+    noStroke();
+  }
+
+  draw_mountain(460, 350, width/4, height);
+  draw_mountain(430, 550, width/4*3, height);
+  draw_mountain(370, 200, width/2-100, height);
+  draw_mountain(250, 250, width/4*2.7, height);
+
+  draw_sun(width/2, height/4, 100);
+
+  updatePixels();
+  noLoop();
+}
+
+function draw_mountain (mount_height, mount_width, base_x, base_y)
+{
+  let xoff1 = random(0, 300);
+  let xoff2 = random(0, 300);
+  let xoff3 = random(0, 300);
+  let nScl1 = 0.009;
+  let nScl2 = 0.009;
+  let mountain_curr_width = 2;
+
+  for(let y=0; y<mount_height; y++)
+  {
+    let middle = noise(xoff1) * mountain_curr_width;
+    let x1 = -mountain_curr_width - noise(xoff2)*mountain_curr_width/2;
+    let x2 =  mountain_curr_width + noise(xoff3)*mountain_curr_width/2;
+
+    for(let x=x1; x<middle; x++)
+    {
+      let t = (x -x1) / (middle - x1);
+      let gradient_color = mixbox.lerp(phthalo_blue, phthalo_medium, t);
+          gradient_color = mixbox.lerp(gradient_color, titanium_white, (1-y/mount_height)/1.5);
+      set(base_x + x, (base_y-mount_height) + y, color(gradient_color));
+    }
+    for(let x=middle; x<x2; x++)
+    {
+      let t = pow((x-middle)/(x2-middle), 1.5);
+      let gradient_color = mixbox.lerp(titanium_white, phthalo_medium, t);
+          gradient_color = mixbox.lerp(gradient_color, titanium_white, (1-y/mount_height)/1.5);
+      set(base_x + x, (base_y-mount_height) + y, color(gradient_color));
+    }
+    mountain_curr_width += mount_width/mount_height * (exp(y/mount_height * 1.5)-0.3);
+    xoff1 += nScl1;
+    xoff2 += nScl2;
+    xoff3 += nScl2;
+  }
+}
+
+function draw_sun(center_x, center_y, radius)
+{
+  for (let y = center_y-radius/2; y < center_y+radius/2; y++)
+  {
+    for (let x = center_x-radius/2; x < center_x+radius/2; x++)
+    {
+      let d = dist(x,y,center_x,center_y);
+      if (d < radius/2)
+      {
+        let sun_color = mixbox.lerp(titanium_white, get(x,y), 0.5);
+        sun_color = mixbox.lerp(get(x,y), sun_color, (y-(center_y-radius/2))/radius); // vertical fade
+        set(x, y, color(sun_color));
+      }
+    }
+  }
+}
+
+# javascript\examples\p5js.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+      function setup() {
+        createCanvas(400, 400);
+      }
+
+      function draw() {
+        var color1 = color(0, 33, 133);  // blue
+        var color2 = color(252, 211, 0); // yellow
+
+        var colorMix = mixbox.lerp(color1, color2, 0.5);
+  
+        background(colorMix);
+      }
+    </script>
+  </head>
+<body>
+</body>
+</html>
+
+# javascript\examples\palette.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <!-- P5js -->
+   <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
+    <!-- Mixbox -->
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <!-- Code -->
+    <script src="palette.js"></script>
+
+    <div align="center" style="margin-top: 50px;">
+      <main></main>
+    </div>
+  </body>
+</html>
+
+# javascript\examples\palette.js
+var visited = []; // coordinates of the boxes the mouse has visited while pressed once
+var boxes = [];   // all boxes that should be displayed and colored, item is an array [x, y, R, G, B]
+let boxSize = 40;
+let color1;
+let color2;
+let valid_start = false;
+let valid_end = false;
+
+function setup() {
+
+  createCanvas(800, 680);
+  background(80);
+  colorMode(RGB);
+  rectMode(CENTER);
+
+  boxes.push([ 60, 60,[ 13,  27,  68]]); // phthalo blue
+  boxes.push([580, 180,[255, 236,   4]]); // bis yellow
+  boxes.push([420,  60,[255, 236,   4]]); // bis yellow
+  boxes.push([220, 300,[255, 208,   0]]); // hansa yellow
+  boxes.push([420, 380,[ 25,   0,  89]]); // ultramarine blue
+  boxes.push([500, 260,[ 25,   0,  89]]); // ultramarine blue
+  boxes.push([700, 380,[225,  35,   1]]); // cadmium red
+  boxes.push([580, 580,[128,   2,  46]]); // magenta
+  boxes.push([100, 580,[249, 250, 249]]); // white
+  boxes.push([260, 580,[249, 250, 249]]); // white
+  drawBoxes();
+}
+
+function draw()
+{
+  // record visited boxes
+  if(mouseIsPressed === true)
+  {
+    let x = snapToGrid(mouseX);
+    let y = snapToGrid(mouseY);
+
+    let alreadyIn = false;
+    for(let v=0; v<visited.length; v++)
+    {
+      if(visited[v][0]==x && visited[v][1]==y) {alreadyIn = true};
+    }
+    if(!alreadyIn) {visited.push([x,y]);}
+  }
+
+  // draw overlay on visited boxes
+  if (visited.length > 0)
+  {
+    stroke(230);
+    noFill();
+    setLineDash([5, 5]);
+    for(let v=0; v<visited.length; v++)
+    {
+      rect(visited[v][0], visited[v][1], boxSize, boxSize);
+    }
+  }
+}
+
+function mousePressed()
+{
+  // sample color from canvas
+  [color1, valid_start] = sampleColor(snapToGrid(mouseX), snapToGrid(mouseY));
+}
+
+function mouseReleased()
+{
+  // sample color from canvas
+  [color2, valid_end] = sampleColor(snapToGrid(mouseX), snapToGrid(mouseY));
+
+  // calculate color of visited boxes & push them into boxes
+  if(mouseinside())
+  {
+    if(valid_start && valid_end)
+    {
+      let numVisited = visited.length;
+      for(let v=0; v<numVisited; v++)
+      {
+        let t = numVisited>1 ? v * 1.0/(numVisited-1) : 1;
+        let mixedColor = mixbox.lerp(color1, color2, t);
+        boxes.push([visited[v][0], visited[v][1], mixedColor]);
+      }
+    }
+    else{alert("You must start and end inside colored squares.");}
+  }
+
+
+  // clear visited array
+  visited = [];
+
+  // redraw screen to erase the overlay, clear background, draw boxes
+  background(80);
+  drawBoxes();
+
+}
+
+function drawBoxes()
+{
+  noStroke();
+  for(let b=0; b<boxes.length; b++)
+  {
+    fill(color(boxes[b][2]));
+    rect(boxes[b][0], boxes[b][1], boxSize, boxSize);
+  }
+}
+
+function sampleColor (x, y)
+{
+  for(let b=0; b<boxes.length; b++)
+  {
+    if(boxes[b][0] == x && boxes[b][1] == y)
+    {
+      return [color(boxes[b][2]), true];
+    }
+  }
+
+  return [color(255), false];
+}
+
+function snapToGrid (x){
+  return boxSize/2 + floor(x/boxSize) * boxSize;
+}
+
+function setLineDash(list) {
+  drawingContext.setLineDash(list);
+}
+
+function mouseinside(){
+  if(mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {return true;}
+  else {return false};
+}
+
+# javascript\examples\splash.html
+<!-- 
+  Inspired by Processing sketch by Okazz
+  https://openprocessing.org/sketch/1533000
+ -->
+
+<!DOCTYPE html>
+<html>
+  <head>  
+  </head>
+  <body style="background-color: #dee0e3;">
+    <!-- Mixbox -->
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+
+    <div id="cnvs" align="center" style="margin-top: 50px;"> </div>
+
+    <!-- Code -->
+    <script>
+      var width = 800;
+      var height = 650;
+      var numSplashes = 270;
+      var frame = 0;
+
+      var canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      document.getElementById("cnvs").appendChild(canvas);
+      var ctx = canvas.getContext("2d");
+      var pixels = new Uint8ClampedArray(width*height*4);
+      var imageData = new ImageData(pixels,width,height);
+      fillBackground(255,255,255, 240, 240, 230, 255);
+
+      // grid for perlin noise
+      var grid = [];
+      var nodes = 128;
+      var noiseScale = 0.007;
+
+      for (let i=0; i<nodes*nodes; i++)
+      {   
+          var unit = [];
+          var angle = Math.random() * 2 * Math.PI; 
+          unit.push(Math.cos(angle));
+          unit.push(Math.sin(angle)); 
+          grid.push(unit);     
+      }  
+
+      // color palette
+      var colors =  [ [249,250,249], [249,250,249], [255,236,4], [126,2,46], [255,236,4], [13,27,68], [255,236,4], [249,250,249], [249,250,249]];    
+      
+      function update() 
+      {
+        frame++;  
+        if (frame < numSplashes)
+        {
+          window.requestAnimationFrame(update); 
+        }         
+      };
+
+      function splash()
+      {
+        var cx = randomGauss(0.5,0.15)*width;
+        var cy = randomGauss(0.5,0.15)*height;
+        var radius = width/2;
+        for(var i=0; i<4; i++){radius = random(10,radius);}
+        numStains = randomInt(3, radius);
+
+        for(var i=0; i<numStains; i++)
+        {
+          var angle = random(0.0, 6.28);
+          var stain_x = cx + radius*Math.cos(angle); 
+          var stain_y = cy + radius*Math.sin(angle); 
+          var r = randomGauss(20, 15) * random(0,random(0,random(0,2)));
+          circle(stain_x, stain_y, r);
+        }
+      }
+
+      function circle(cx,cy,radius)
+      {
+        var colorIndex = Math.round((perlin(cx*noiseScale, cy*noiseScale)+1.0)*0.5*8);
+        var clr = colors[colorIndex];   
+
+        var x0 = Math.round(clamp(cx-radius, 0, width));
+        var x1 = Math.round(clamp(cx+radius, 0, width));
+        var y0 = Math.round(clamp(cy-radius, 0, height));
+        var y1 = Math.round(clamp(cy+radius, 0, height));
+
+        var alpha = random(0.01,0.7);
+        
+        for(var y=y0; y<y1; y++)
+        for(var x=x0; x<x1; x++)
+        {
+          var d = dist2D(cx, cy, x, y);           
+          if( d < radius)
+          {
+            var r = pixels[(x+y*width)*4+0]; 
+            var g = pixels[(x+y*width)*4+1];
+            var b = pixels[(x+y*width)*4+2];
+
+            var bgColor = [r,g,b]; 
+            var mixedColor = mixbox.lerp(bgColor, clr, alpha * smoothStep(radius, radius*0.95, d));
+          
+            pixels[(x+y*width)*4+0] = mixedColor[0];
+            pixels[(x+y*width)*4+1] = mixedColor[1];
+            pixels[(x+y*width)*4+2] = mixedColor[2];
+            pixels[(x+y*width)*4+3] = 255;
+          }
+        }
+
+        ctx.putImageData(imageData,0,0);
+      }
+
+      function fillBackground(r,g,b, r2, g2, b2, a)
+      {
+        for(var y=0;y<height;y++)
+        for(var x=0;x<width;x++)
+        {
+          pixels[(x+y*width)*4+0] = (x>40 && x<(width-40) && y>40 && y<(height-40)) ? r2 : r;
+          pixels[(x+y*width)*4+1] = (x>40 && x<(width-40) && y>40 && y<(height-40)) ? g2 : g;
+          pixels[(x+y*width)*4+2] = (x>40 && x<(width-40) && y>40 && y<(height-40)) ? b2 : b;
+          pixels[(x+y*width)*4+3] = a;
+        }
+        ctx.putImageData(imageData,0,0);
+      }
+
+      function clamp(x, lowerlimit, upperlimit) { if (x<lowerlimit) {return lowerlimit;} else if(x>upperlimit){return upperlimit;} else {return x;}}
+      function smoothStep(edge0, edge1, x) { x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return x * x * (3 - 2 * x);}
+      function dist2D(ax,ay,bx,by) { return Math.sqrt((ax-bx)*(ax-bx) + (ay-by)*(ay-by));}
+      function box_muller(){ return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());}
+      function remap(x, from1, to1, from2, to2) { return from2 + (to2 - from2) * ((x-from1)/(to1-from1));}
+      function random(min, max) {return remap(Math.random(), 0.0, 1.0, min, max);}
+      function randomInt(min, max) {return Math.round(random(min, max));}
+      function randomGauss(mean, variation){return box_muller()*variation + mean;}
+      function randomGaussInt(mean, variation){return Math.round(box_muller()*variation + mean);}
+      function perlin(_x,_y)
+      {
+          var x = _x;
+          var y = _y;
+
+          var x0 = Math.floor(x);
+          var x1 = x0+1;
+          var y0 = Math.floor(y);
+          var y1 = y0+1;
+
+          var dot_LT = dot([x-x0,y-y0], grid[(x0&127) + (y0&127)*nodes]);
+          var dot_RT = dot([x-x1,y-y0], grid[(x1&127) + (y0&127)*nodes]);
+          var dot_LB = dot([x-x0,y-y1], grid[(x0&127) + (y1&127)*nodes]);
+          var dot_RB = dot([x-x1,y-y1], grid[(x1&127) + (y1&127)*nodes]);
+
+          var top       = lerp_smooth(dot_LT, dot_RT, x-x0);
+          var bottom    = lerp_smooth(dot_LB, dot_RB, x-x0);
+          var intensity = lerp_smooth (top, bottom, y-y0);
+
+          return intensity;
+      }
+      function dot(a,b) {return a[0] * b[0] + a[1] * b[1];}
+      function lerp_smooth(a,b,t){var t_smooth = 6*t**5 - 15*t**4 + 10*t**3; return a*(1-t_smooth) + b*t_smooth;}
+
+      for(var s=0; s<numSplashes; s++){splash();}
+      //update();
+      
+    </script>
+  </body>
+</html>
+
+# javascript\examples\svg.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <svg width="256" height="256">
+      <rect id="rect" width="256" height="256">
+    </svg>
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+      var color1 = "rgb(0, 33, 133)";  // blue
+      var color2 = "rgb(252, 211, 0)"; // yellow
+      document.getElementById('rect').setAttribute('fill', mixbox.lerp(color1, color2, 0.5));
+    </script>
+  </body>
+</html>
+
+# javascript\examples\threejs.html
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.js"></script>
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+      var scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+      scene.background = new THREE.Color(0xffffff);
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      document.body.appendChild( renderer.domElement );
+      
+      const geometry = new THREE.BoxGeometry();
+      var cubes = [];
+        
+      var color1 = new THREE.Color(0x002185); // blue
+      var color2 = new THREE.Color(0xfcd300); // yellow
+
+      for(var i = 0; i < 7; i++) {
+        var colorMix = mixbox.lerp(color1, color2, i / 6.0).toString();
+        const material = new THREE.MeshBasicMaterial( { color: colorMix } );
+        const cube = new THREE.Mesh( geometry, material );
+        cube.position.x = ((i / 6.0) * 2.0 - 1.0) * 4.5;
+        cube.rotation.x = i / 3.0;
+        scene.add(cube);
+        cubes.push(cube);
+      }
+
+      camera.position.z = 5;
+
+      function animate() {
+        requestAnimationFrame( animate );        
+        for(var i=0;i<7;i++) {
+          cubes[i].rotation.x += 0.01;
+          cubes[i].rotation.y += 0.01;
+        }
+        renderer.render( scene, camera );
+      }
+
+      animate();
+    </script>
+  </body>
+</html>
+
+# javascript\examples\webgl.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+      var canvas = document.getElementById("canvas");
+      var gl = canvas.getContext("webgl");
+
+      var vertexShader = `
+        attribute vec2 position;
+
+        void main(void) {
+          gl_Position = vec4(position, 0.0, 1.0);
+        }
+      `;
+
+      var fragmentShader = `
+        precision highp float;
+
+        uniform sampler2D mixbox_lut;
+        
+        #include "mixbox.glsl"
+
+        void main(void) {
+          vec3 rgb1 = vec3(0, 0.129, 0.522); // blue
+          vec3 rgb2 = vec3(0.988, 0.827, 0); // yellow 
+          float t = gl_FragCoord.x / 512.0;  // mixing ratio
+
+          vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+
+          gl_FragColor = vec4(rgb, 1.0);
+        }
+      `;
+
+      fragmentShader = fragmentShader.replace('#include "mixbox.glsl"', mixbox.glsl());
+
+      var shaderProgram = gl.createProgram();
+      gl.attachShader(shaderProgram, compileShader(gl, gl.VERTEX_SHADER, vertexShader));
+      gl.attachShader(shaderProgram, compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader));
+      gl.linkProgram(shaderProgram);
+
+      var vertexPosition =  gl.getAttribLocation(shaderProgram, "position");
+
+      var positions = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
+
+      var positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+      function render(now) {
+        gl.useProgram(shaderProgram);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, mixbox.lutTexture(gl));
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "mixbox_lut"), 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(vertexPosition);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        requestAnimationFrame(render);
+      }
+
+      requestAnimationFrame(render);
+
+      function compileShader(gl, type, source) {
+        var shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }        
+    </script>
+  </body>
+</html>
+
+# javascript\mixbox.esm.js
+// ==========================================================
+//  MIXBOX 2.0 (c) 2022 Secret Weapons. All rights reserved.
+//  License: Creative Commons Attribution-NonCommercial 4.0
+//  Authors: Sarka Sochorova and Ondrej Jamriska
+// ==========================================================
+//
+//   BASIC USAGE
+//
+//      var rgb = mixbox.lerp(rgb1, rgb2, t);
+//
+//   MULTI-COLOR MIXING
+//
+//      var z1 = mixbox.rgbToLatent(rgb1);
+//      var z2 = mixbox.rgbToLatent(rgb2);
+//      var z3 = mixbox.rgbToLatent(rgb3);
+//
+//      var zMix = new Array(mixbox.LATENT_SIZE);
+//
+//      for (var i = 0; i < zMix.length; i++) { // mix:
+//          zMix[i] = (0.3*z1[i] +       // 30% of rgb1
+//                     0.6*z2[i] +       // 60% of rgb2
+//                     0.1*z3[i]);       // 10% of rgb3
+//      }
+//
+//      var rgbMix = mixbox.latentToRgb(zMix);
+//
+//   PIGMENT COLORS
+//
+//      Cadmium Yellow                    254, 236,   0
+//      Hansa Yellow                      252, 211,   0
+//      Cadmium Orange                    255, 105,   0
+//      Cadmium Red                       255,  39,   2
+//      Quinacridone Magenta              128,   2,  46
+//      Cobalt Violet                      78,   0,  66
+//      Ultramarine Blue                   25,   0,  89
+//      Cobalt Blue                         0,  33, 133
+//      Phthalo Blue                       13,  27,  68
+//      Phthalo Green                       0,  60,  50
+//      Permanent Green                     7, 109,  22
+//      Sap Green                         107, 148,   4
+//      Burnt Sienna                      123,  72,   0
+//
+//   LICENSING
+//
+//      If you want to obtain commercial license, please
+//      contact us at: mixbox@scrtwpns.com
+//
+
+function lerp(color1, color2, t) {
+  color1 = unpackColor(color1);
+  color2 = unpackColor(color2);
+
+  if (color1 !== undefined && color2 !== undefined) {
+    var latent1 = unpackedRgbToLatent(color1);
+    var latent2 = unpackedRgbToLatent(color2);
+
+    var colorMix = latentToRgb(lerpLatent(latent1, latent2, t));
+
+    if (color1.length === 3 && color2.length === 3) return colorMix;
+
+    var alpha1 = color1.length > 3 ? color1[3] : 255;
+    var alpha2 = color2.length > 3 ? color2[3] : 255;
+    colorMix[3] = (((1.0-t)*alpha1 + t*alpha2)+0.5) | 0;
+
+    return colorMix;
+  }
+}
+
+function lerpFloat(color1, color2, t) {
+  color1 = unpackFloatColor(color1);
+  color2 = unpackFloatColor(color2);
+
+  if (color1 !== undefined && color2 !== undefined) {
+    var latent1 = unpackedFloatRgbToLatent(color1);
+    var latent2 = unpackedFloatRgbToLatent(color2);
+
+    var colorMix = latentToFloatRgb(lerpLatent(latent1, latent2, t));
+
+    if (color1.length === 3 && color2.length === 3) return colorMix;
+
+    var alpha1 = color1.length > 3 ? color1[3] : 1.0;
+    var alpha2 = color2.length > 3 ? color2[3] : 1.0;
+    colorMix[3] = (1.0-t)*alpha1 + t*alpha2;
+
+    return colorMix;
+  }
+}
+
+function lerpLinearFloat(color1, color2, t) {
+  color1 = unpackLinearFloatColor(color1);
+  color2 = unpackLinearFloatColor(color2);
+
+  if (color1 !== undefined && color2 !== undefined) {
+    var latent1 = unpackedLinearFloatRgbToLatent(color1);
+    var latent2 = unpackedLinearFloatRgbToLatent(color2);
+
+    var colorMix = latentToLinearFloatRgb(lerpLatent(latent1, latent2, t));
+
+    if (color1.length === 3 && color2.length === 3) return colorMix;
+
+    var alpha1 = color1.length > 3 ? color1[3] : 1.0;
+    var alpha2 = color2.length > 3 ? color2[3] : 1.0;
+    colorMix[3] = (1.0-t)*alpha1 + t*alpha2;
+
+    return colorMix;
+  }
+}
+
+function rgbArray(r, g, b) {
+  var rgb = [r, g, b];
+  rgb.toString = function() {
+    return this.length > 3 ? "rgba(" + this[0] + "," + this[1] + "," + this[2] + "," + (this[3]/255.0) + ")" :
+                              "rgb(" + this[0] + "," + this[1] + "," + this[2] + ")";
+  }
+  return rgb;
+}
+
+function rgbToLatent(r, g, b) {
+  var rgb = unpackColor((g === undefined && b === undefined) ? (r) : [r, g, b]);
+  if (rgb !== undefined) return unpackedRgbToLatent(rgb);
+}
+
+function latentToRgb(latent) {
+  if (Array.isArray(latent) && latent.length === 7) {
+    var rgb = evalPolynomial(latent[0], latent[1], latent[2], latent[3]);
+    return rgbArray((clamp01(rgb[0] + latent[4])*255.0 + 0.5) | 0,
+                    (clamp01(rgb[1] + latent[5])*255.0 + 0.5) | 0,
+                    (clamp01(rgb[2] + latent[6])*255.0 + 0.5) | 0);
+  }
+}
+
+function floatRgbToLatent(r, g, b) {
+  var rgb = unpackFloatColor((g === undefined && b === undefined) ? r : [r, g, b]);
+  if (rgb !== undefined) return unpackedFloatRgbToLatent(rgb);
+}
+
+function latentToFloatRgb(latent) {
+  if (Array.isArray(latent) && latent.length === 7) {
+    var rgb = evalPolynomial(latent[0], latent[1], latent[2], latent[3]);
+    return [
+      clamp01(rgb[0] + latent[4]),
+      clamp01(rgb[1] + latent[5]),
+      clamp01(rgb[2] + latent[6])
+    ];
+  }
+}
+
+function linearFloatRgbToLatent(r, g, b) {
+  var rgb = unpackLinearFloatColor((g === undefined && b === undefined) ? r : [r, g, b]);
+  if (rgb !== undefined) return unpackedLinearFloatRgbToLatent(rgb);
+}
+
+function latentToLinearFloatRgb(latent) {
+  var rgb = latentToFloatRgb(latent);
+  if (rgb !== undefined) return [
+    srgbToLinear(rgb[0]),
+    srgbToLinear(rgb[1]),
+    srgbToLinear(rgb[2])
+  ];
+}
+
+function clamp(x, xmin, xmax) {
+  return Math.min(Math.max(x, xmin), xmax);
+}
+
+function clamp01(x) {
+  return Math.min(Math.max(x, 0.0), 1.0);
+}
+
+function srgbToLinear(x) {
+  return (x >= 0.04045) ? Math.pow((x + 0.055) / 1.055, 2.4) : x/12.92;
+}
+
+function linearToSrgb(x) {
+  return (x >= 0.0031308) ? 1.055*Math.pow(x, 1.0/2.4) - 0.055 : 12.92*x;
+}
+
+function lerpLatent(latent1, latent2, t) {
+  var latentMix = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+  for (var i = 0; i < 7; i++) {
+    latentMix[i] = (1.0-t)*latent1[i] + t*latent2[i];
+  }
+
+  return latentMix;
+}
+
+function unpackColor(color) {
+  if (Array.isArray(color) && color.length >= 3) {
+    return color;
+  }
+  if (typeof color === 'string') {
+    return parseColorString(color);
+  }
+  if (typeof color === 'object') {
+    if (typeof color.getHexString === 'function') {
+      return parseColorString(color.getHexString());
+    }
+    if (!isNaN(color.r) && !isNaN(color.g) && !isNaN(color.b)) {
+      if (isNaN(color.a)) { return [color.r, color.g, color.b]; }
+      return [color.r, color.g, color.b, color.a];
+    }
+    return parseColorString(color.toString());
+  }
+  if (typeof color === 'number' && isFinite(color) && Math.floor(color) === color && color >= 0) {
+    return [ (color >>> 16) & 255, (color >>> 8) & 255, color & 255 ];
+  }
+}
+
+function unpackFloatColor(color) {
+  if (Array.isArray(color) && color.length >= 3) {
+    return color;
+  }
+  if (typeof color === 'object' && !isNaN(color.r) && !isNaN(color.g) && !isNaN(color.b)) {
+    if (isNaN(color.a)) { return [color.r, color.g, color.b]; }
+    return [color.r, color.g, color.b, color.a];
+  }
+  if (color = unpackColor(color)) {
+    for (var i = 0; i < color.length; i++) { color[i] /= 255.0; }
+    return color;
+  }
+}
+
+function unpackLinearFloatColor(color) {
+  if (Array.isArray(color) && color.length >= 3) {
+    return color;
+  }
+  if (typeof color === 'object' && !isNaN(color.r) && !isNaN(color.g) && !isNaN(color.b)) {
+    if (isNaN(color.a)) { return [color.r, color.g, color.b]; }
+    return [color.r, color.g, color.b, color.a];
+  }
+  if (color = unpackColor(color)) {
+    for (var i = 0; i < 3; i++) { color[i] = srgbToLinear(color[i] / 255.0); }
+    if (color.length > 3) { color[3] /= 255.0; }
+    return color;
+  }
+}
+
+function unpackedRgbToLatent(rgb) {
+  return unpackedFloatRgbToLatent([
+    rgb[0] / 255.0,
+    rgb[1] / 255.0,
+    rgb[2] / 255.0
+  ]);
+}
+
+function unpackedFloatRgbToLatent(rgb) {
+  var r = clamp01(rgb[0]);
+  var g = clamp01(rgb[1]);
+  var b = clamp01(rgb[2]);
+
+  var x = r * 63.0;
+  var y = g * 63.0;
+  var z = b * 63.0;
+
+  var ix = x | 0;
+  var iy = y | 0;
+  var iz = z | 0;
+
+  var tx = x - ix;
+  var ty = y - iy;
+  var tz = z - iz;
+
+  var xyz = ix + iy*64 + iz*64*64;
+
+  var c0 = 0.0;
+  var c1 = 0.0;
+  var c2 = 0.0;
+
+  var w = 0.0;
+  w = (1.0-tx)*(1.0-ty)*(1.0-tz); c0 += w*lut[xyz+ 192]; c1 += w*lut[xyz+262336]; c2 += w*lut[xyz+524480];
+  w = (    tx)*(1.0-ty)*(1.0-tz); c0 += w*lut[xyz+ 193]; c1 += w*lut[xyz+262337]; c2 += w*lut[xyz+524481];
+  w = (1.0-tx)*(    ty)*(1.0-tz); c0 += w*lut[xyz+ 256]; c1 += w*lut[xyz+262400]; c2 += w*lut[xyz+524544];
+  w = (    tx)*(    ty)*(1.0-tz); c0 += w*lut[xyz+ 257]; c1 += w*lut[xyz+262401]; c2 += w*lut[xyz+524545];
+  w = (1.0-tx)*(1.0-ty)*(    tz); c0 += w*lut[xyz+4288]; c1 += w*lut[xyz+266432]; c2 += w*lut[xyz+528576];
+  w = (    tx)*(1.0-ty)*(    tz); c0 += w*lut[xyz+4289]; c1 += w*lut[xyz+266433]; c2 += w*lut[xyz+528577];
+  w = (1.0-tx)*(    ty)*(    tz); c0 += w*lut[xyz+4352]; c1 += w*lut[xyz+266496]; c2 += w*lut[xyz+528640];
+  w = (    tx)*(    ty)*(    tz); c0 += w*lut[xyz+4353]; c1 += w*lut[xyz+266497]; c2 += w*lut[xyz+528641];
+
+  c0 /= 255.0;
+  c1 /= 255.0;
+  c2 /= 255.0;
+
+  var c3 = 1.0 - (c0 + c1 + c2);
+
+  var c00 = c0 * c0;
+  var c11 = c1 * c1;
+  var c22 = c2 * c2;
+  var c33 = c3 * c3;
+  var c01 = c0 * c1;
+  var c02 = c0 * c2;
+  var c12 = c1 * c2;
+
+  var rmix = 0.0;
+  var gmix = 0.0;
+  var bmix = 0.0;
+
+  var w = 0.0;
+  w = c0*c00; rmix += +0.07717053*w; gmix += +0.02826978*w; bmix += +0.24832992*w;
+  w = c1*c11; rmix += +0.95912302*w; gmix += +0.80256528*w; bmix += +0.03561839*w;
+  w = c2*c22; rmix += +0.74683774*w; gmix += +0.04868586*w; bmix += +0.00000000*w;
+  w = c3*c33; rmix += +0.99518138*w; gmix += +0.99978149*w; bmix += +0.99704802*w;
+  w = c00*c1; rmix += +0.04819146*w; gmix += +0.83363781*w; bmix += +0.32515377*w;
+  w = c01*c1; rmix += -0.68146950*w; gmix += +1.46107803*w; bmix += +1.06980936*w;
+  w = c00*c2; rmix += +0.27058419*w; gmix += -0.15324870*w; bmix += +1.98735057*w;
+  w = c02*c2; rmix += +0.80478189*w; gmix += +0.67093710*w; bmix += +0.18424500*w;
+  w = c00*c3; rmix += -0.35031003*w; gmix += +1.37855826*w; bmix += +3.68865000*w;
+  w = c0*c33; rmix += +1.05128046*w; gmix += +1.97815239*w; bmix += +2.82989073*w;
+  w = c11*c2; rmix += +3.21607125*w; gmix += +0.81270228*w; bmix += +1.03384539*w;
+  w = c1*c22; rmix += +2.78893374*w; gmix += +0.41565549*w; bmix += -0.04487295*w;
+  w = c11*c3; rmix += +3.02162577*w; gmix += +2.55374103*w; bmix += +0.32766114*w;
+  w = c1*c33; rmix += +2.95124691*w; gmix += +2.81201112*w; bmix += +1.17578442*w;
+  w = c22*c3; rmix += +2.82677043*w; gmix += +0.79933038*w; bmix += +1.81715262*w;
+  w = c2*c33; rmix += +2.99691099*w; gmix += +1.22593053*w; bmix += +1.80653661*w;
+  w = c01*c2; rmix += +1.87394106*w; gmix += +2.05027182*w; bmix += -0.29835996*w;
+  w = c01*c3; rmix += +2.56609566*w; gmix += +7.03428198*w; bmix += +0.62575374*w;
+  w = c02*c3; rmix += +4.08329484*w; gmix += -1.40408358*w; bmix += +2.14995522*w;
+  w = c12*c3; rmix += +6.00078678*w; gmix += +2.55552042*w; bmix += +1.90739502*w;
+
+  return [
+    c0,
+    c1,
+    c2,
+    c3,
+    r - rmix,
+    g - gmix,
+    b - bmix,
+  ];
+}
+
+function unpackedLinearFloatRgbToLatent(rgb) {
+  return unpackedFloatRgbToLatent([
+    linearToSrgb(rgb[0]),
+    linearToSrgb(rgb[1]),
+    linearToSrgb(rgb[2])
+  ]);
+}
+
+function evalPolynomial(c0, c1, c2, c3) {
+  var r = 0.0;
+  var g = 0.0;
+  var b = 0.0;
+
+  var c00 = c0 * c0;
+  var c11 = c1 * c1;
+  var c22 = c2 * c2;
+  var c33 = c3 * c3;
+  var c01 = c0 * c1;
+  var c02 = c0 * c2;
+  var c12 = c1 * c2;
+
+  var w = 0.0;
+  w = c0*c00; r += +0.07717053*w; g += +0.02826978*w; b += +0.24832992*w;
+  w = c1*c11; r += +0.95912302*w; g += +0.80256528*w; b += +0.03561839*w;
+  w = c2*c22; r += +0.74683774*w; g += +0.04868586*w; b += +0.00000000*w;
+  w = c3*c33; r += +0.99518138*w; g += +0.99978149*w; b += +0.99704802*w;
+  w = c00*c1; r += +0.04819146*w; g += +0.83363781*w; b += +0.32515377*w;
+  w = c01*c1; r += -0.68146950*w; g += +1.46107803*w; b += +1.06980936*w;
+  w = c00*c2; r += +0.27058419*w; g += -0.15324870*w; b += +1.98735057*w;
+  w = c02*c2; r += +0.80478189*w; g += +0.67093710*w; b += +0.18424500*w;
+  w = c00*c3; r += -0.35031003*w; g += +1.37855826*w; b += +3.68865000*w;
+  w = c0*c33; r += +1.05128046*w; g += +1.97815239*w; b += +2.82989073*w;
+  w = c11*c2; r += +3.21607125*w; g += +0.81270228*w; b += +1.03384539*w;
+  w = c1*c22; r += +2.78893374*w; g += +0.41565549*w; b += -0.04487295*w;
+  w = c11*c3; r += +3.02162577*w; g += +2.55374103*w; b += +0.32766114*w;
+  w = c1*c33; r += +2.95124691*w; g += +2.81201112*w; b += +1.17578442*w;
+  w = c22*c3; r += +2.82677043*w; g += +0.79933038*w; b += +1.81715262*w;
+  w = c2*c33; r += +2.99691099*w; g += +1.22593053*w; b += +1.80653661*w;
+  w = c01*c2; r += +1.87394106*w; g += +2.05027182*w; b += -0.29835996*w;
+  w = c01*c3; r += +2.56609566*w; g += +7.03428198*w; b += +0.62575374*w;
+  w = c02*c3; r += +4.08329484*w; g += -1.40408358*w; b += +2.14995522*w;
+  w = c12*c3; r += +6.00078678*w; g += +2.55552042*w; b += +1.90739502*w;
+
+  return [r, g, b];
+}
+
+function hexToUint8(str) {
+  if (str.length === 1) { str = str + str; }
+  return parseInt("0x" + str, 16);
+}
+
+function strToUint8(str) {
+  var value = (str.charAt(str.length - 1) === '%') ? ((Number(str.slice(0, -1)) / 100.0) * 255.0) : Number(str);
+  return clamp(Math.round(value), 0, 255);
+}
+
+var numRegex  = /[+\-]?(?=\.\d|\d)(?:0|[1-9]\d*)?(?:\.\d*)?(?:\d[eE][+\-]?\d+)?%?/;
+var rgbRegex  = new RegExp('^rgb\\(('+numRegex.source+'),('+numRegex.source+'),('+numRegex.source+')\\)$','i');
+var rgbaRegex = new RegExp('^rgba\\(('+numRegex.source+'),('+numRegex.source+'),('+numRegex.source+'),('+numRegex.source+')\\)$','i');
+var hex3Regex = /^#?([a-f0-9])([a-f0-9])([a-f0-9])$/i;
+var hex4Regex = /^#?([a-f0-9])([a-f0-9])([a-f0-9])([a-f0-9])$/i;
+var hex6Regex = /^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i;
+var hex8Regex = /^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i;
+
+function parseColorString(string) {
+  string = string.replace(/\s/g, '');
+
+  var matches;
+  if (matches = rgbRegex.exec(string))  { return [ strToUint8(matches[1]), strToUint8(matches[2]), strToUint8(matches[3]) ]; }
+  if (matches = rgbaRegex.exec(string)) { return [ strToUint8(matches[1]), strToUint8(matches[2]), strToUint8(matches[3]), clamp(Number(matches[4]) * 255.0, 0, 255) ]; }
+  if (matches = hex6Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]) ]; }
+  if (matches = hex3Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]) ]; }
+  if (matches = hex8Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]), hexToUint8(matches[4]) ]; }
+  if (matches = hex4Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]), hexToUint8(matches[4]) ]; }
+
+  var namedColors = {
+    aliceblue : [ 240, 248, 255 ],
+    antiquewhite : [ 250, 235, 215 ],
+    aqua : [ 0, 255, 255 ],
+    aquamarine : [ 127, 255, 212 ],
+    azure : [ 240, 255, 255 ],
+    beige : [ 245, 245, 220 ],
+    bisque : [ 255, 228, 196 ],
+    black : [ 0, 0, 0 ],
+    blanchedalmond : [ 255, 235, 205 ],
+    blue : [ 0, 0, 255 ],
+    blueviolet : [ 138, 43, 226 ],
+    brown : [ 165, 42, 42 ],
+    burlywood : [ 222, 184, 135 ],
+    cadetblue : [ 95, 158, 160 ],
+    chartreuse : [ 127, 255, 0 ],
+    chocolate : [ 210, 105, 30 ],
+    coral : [ 255, 127, 80 ],
+    cornflowerblue : [ 100, 149, 237 ],
+    cornsilk : [ 255, 248, 220 ],
+    crimson : [ 220, 20, 60 ],
+    cyan : [ 0, 255, 255 ],
+    darkblue : [ 0, 0, 139 ],
+    darkcyan : [ 0, 139, 139 ],
+    darkgoldenrod : [ 184, 134, 11 ],
+    darkgray : [ 169, 169, 169 ],
+    darkgreen : [ 0, 100, 0 ],
+    darkgrey : [ 169, 169, 169 ],
+    darkkhaki : [ 189, 183, 107 ],
+    darkmagenta : [ 139, 0, 139 ],
+    darkolivegreen : [ 85, 107, 47 ],
+    darkorange : [ 255, 140, 0 ],
+    darkorchid : [ 153, 50, 204 ],
+    darkred : [ 139, 0, 0 ],
+    darksalmon : [ 233, 150, 122 ],
+    darkseagreen : [ 143, 188, 143 ],
+    darkslateblue : [ 72, 61, 139 ],
+    darkslategray : [ 47, 79, 79 ],
+    darkslategrey : [ 47, 79, 79 ],
+    darkturquoise : [ 0, 206, 209 ],
+    darkviolet : [ 148, 0, 211 ],
+    deeppink : [ 255, 20, 147 ],
+    deepskyblue : [ 0, 191, 255 ],
+    dimgray : [ 105, 105, 105 ],
+    dimgrey : [ 105, 105, 105 ],
+    dodgerblue : [ 30, 144, 255 ],
+    firebrick : [ 178, 34, 34 ],
+    floralwhite : [ 255, 250, 240 ],
+    forestgreen : [ 34, 139, 34 ],
+    fuchsia : [ 255, 0, 255 ],
+    gainsboro : [ 220, 220, 220 ],
+    ghostwhite : [ 248, 248, 255 ],
+    gold : [ 255, 215, 0 ],
+    goldenrod : [ 218, 165, 32 ],
+    gray : [ 128, 128, 128 ],
+    green : [ 0, 128, 0 ],
+    greenyellow : [ 173, 255, 47 ],
+    grey : [ 128, 128, 128 ],
+    honeydew : [ 240, 255, 240 ],
+    hotpink : [ 255, 105, 180 ],
+    indianred : [ 205, 92, 92 ],
+    indigo : [ 75, 0, 130 ],
+    ivory : [ 255, 255, 240 ],
+    khaki : [ 240, 230, 140 ],
+    lavender : [ 230, 230, 250 ],
+    lavenderblush : [ 255, 240, 245 ],
+    lawngreen : [ 124, 252, 0 ],
+    lemonchiffon : [ 255, 250, 205 ],
+    lightblue : [ 173, 216, 230 ],
+    lightcoral : [ 240, 128, 128 ],
+    lightcyan : [ 224, 255, 255 ],
+    lightgoldenrodyellow : [ 250, 250, 210 ],
+    lightgray : [ 211, 211, 211 ],
+    lightgreen : [ 144, 238, 144 ],
+    lightgrey : [ 211, 211, 211 ],
+    lightpink : [ 255, 182, 193 ],
+    lightsalmon : [ 255, 160, 122 ],
+    lightseagreen : [ 32, 178, 170 ],
+    lightskyblue : [ 135, 206, 250 ],
+    lightslategray : [ 119, 136, 153 ],
+    lightslategrey : [ 119, 136, 153 ],
+    lightsteelblue : [ 176, 196, 222 ],
+    lightyellow : [ 255, 255, 224 ],
+    lime : [ 0, 255, 0 ],
+    limegreen : [ 50, 205, 50 ],
+    linen : [ 250, 240, 230 ],
+    magenta : [ 255, 0, 255 ],
+    maroon : [ 128, 0, 0 ],
+    mediumaquamarine : [ 102, 205, 170 ],
+    mediumblue : [ 0, 0, 205 ],
+    mediumorchid : [ 186, 85, 211 ],
+    mediumpurple : [ 147, 112, 219 ],
+    mediumseagreen : [ 60, 179, 113 ],
+    mediumslateblue : [ 123, 104, 238 ],
+    mediumspringgreen : [ 0, 250, 154 ],
+    mediumturquoise : [ 72, 209, 204 ],
+    mediumvioletred : [ 199, 21, 133 ],
+    midnightblue : [ 25, 25, 112 ],
+    mintcream : [ 245, 255, 250 ],
+    mistyrose : [ 255, 228, 225 ],
+    moccasin : [ 255, 228, 181 ],
+    navajowhite : [ 255, 222, 173 ],
+    navy : [ 0, 0, 128 ],
+    oldlace : [ 253, 245, 230 ],
+    olive : [ 128, 128, 0 ],
+    olivedrab : [ 107, 142, 35 ],
+    orange : [ 255, 165, 0 ],
+    orangered : [ 255, 69, 0 ],
+    orchid : [ 218, 112, 214 ],
+    palegoldenrod : [ 238, 232, 170 ],
+    palegreen : [ 152, 251, 152 ],
+    paleturquoise : [ 175, 238, 238 ],
+    palevioletred : [ 219, 112, 147 ],
+    papayawhip : [ 255, 239, 213 ],
+    peachpuff : [ 255, 218, 185 ],
+    peru : [ 205, 133, 63 ],
+    pink : [ 255, 192, 203 ],
+    plum : [ 221, 160, 221 ],
+    powderblue : [ 176, 224, 230 ],
+    purple : [ 128, 0, 128 ],
+    red : [ 255, 0, 0 ],
+    rosybrown : [ 188, 143, 143 ],
+    royalblue : [ 65, 105, 225 ],
+    saddlebrown : [ 139, 69, 19 ],
+    salmon : [ 250, 128, 114 ],
+    sandybrown : [ 244, 164, 96 ],
+    seagreen : [ 46, 139, 87 ],
+    seashell : [ 255, 245, 238 ],
+    sienna : [ 160, 82, 45 ],
+    silver : [ 192, 192, 192 ],
+    skyblue : [ 135, 206, 235 ],
+    slateblue : [ 106, 90, 205 ],
+    slategray : [ 112, 128, 144 ],
+    slategrey : [ 112, 128, 144 ],
+    snow : [ 255, 250, 250 ],
+    springgreen : [ 0, 255, 127 ],
+    steelblue : [ 70, 130, 180 ],
+    tan : [ 210, 180, 140 ],
+    teal : [ 0, 128, 128 ],
+    thistle : [ 216, 191, 216 ],
+    tomato : [ 255, 99, 71 ],
+    turquoise : [ 64, 224, 208 ],
+    violet : [ 238, 130, 238 ],
+    wheat : [ 245, 222, 179 ],
+    white : [ 255, 255, 255 ],
+    whitesmoke : [ 245, 245, 245 ],
+    yellow : [ 255, 255, 0 ],
+    yellowgreen : [ 154, 205, 50 ],
+  };
+
+  var name = string.toLowerCase();
+  if (namedColors.hasOwnProperty(name)) return namedColors[name];
+}
+
+function glsl() {
+  return "#ifndef MIXBOX_INCLUDED\n" +
+    "#define MIXBOX_INCLUDED\n" +
+    "\n" +
+    "#ifndef MIXBOX_LUT\n" +
+    "  #if __VERSION__ <= 120\n" +
+    "    #define MIXBOX_LUT(UV) texture2D(mixbox_lut, UV)\n" +
+    "  #else\n" +
+    "    #define MIXBOX_LUT(UV) textureLod(mixbox_lut, UV, 0.0)\n" +
+    "  #endif\n" +
+    "#endif\n" +
+    "\n" +
+    "#define mixbox_latent mat3\n" +
+    "\n" +
+    "vec3 mixbox_eval_polynomial(vec3 c)\n" +
+    "{\n" +
+    "  float c0 = c[0];\n" +
+    "  float c1 = c[1];\n" +
+    "  float c2 = c[2];\n" +
+    "  float c3 = 1.0 - (c0 + c1 + c2);\n" +
+    "\n" +
+    "  float c00 = c0 * c0;\n" +
+    "  float c11 = c1 * c1;\n" +
+    "  float c22 = c2 * c2;\n" +
+    "  float c01 = c0 * c1;\n" +
+    "  float c02 = c0 * c2;\n" +
+    "  float c12 = c1 * c2;\n" +
+    "  float c33 = c3 * c3;\n" +
+    "\n" +
+    "  return (c0*c00) * vec3(+0.07717053, +0.02826978, +0.24832992) +\n" +
+    "         (c1*c11) * vec3(+0.95912302, +0.80256528, +0.03561839) +\n" +
+    "         (c2*c22) * vec3(+0.74683774, +0.04868586, +0.00000000) +\n" +
+    "         (c3*c33) * vec3(+0.99518138, +0.99978149, +0.99704802) +\n" +
+    "         (c00*c1) * vec3(+0.04819146, +0.83363781, +0.32515377) +\n" +
+    "         (c01*c1) * vec3(-0.68146950, +1.46107803, +1.06980936) +\n" +
+    "         (c00*c2) * vec3(+0.27058419, -0.15324870, +1.98735057) +\n" +
+    "         (c02*c2) * vec3(+0.80478189, +0.67093710, +0.18424500) +\n" +
+    "         (c00*c3) * vec3(-0.35031003, +1.37855826, +3.68865000) +\n" +
+    "         (c0*c33) * vec3(+1.05128046, +1.97815239, +2.82989073) +\n" +
+    "         (c11*c2) * vec3(+3.21607125, +0.81270228, +1.03384539) +\n" +
+    "         (c1*c22) * vec3(+2.78893374, +0.41565549, -0.04487295) +\n" +
+    "         (c11*c3) * vec3(+3.02162577, +2.55374103, +0.32766114) +\n" +
+    "         (c1*c33) * vec3(+2.95124691, +2.81201112, +1.17578442) +\n" +
+    "         (c22*c3) * vec3(+2.82677043, +0.79933038, +1.81715262) +\n" +
+    "         (c2*c33) * vec3(+2.99691099, +1.22593053, +1.80653661) +\n" +
+    "         (c01*c2) * vec3(+1.87394106, +2.05027182, -0.29835996) +\n" +
+    "         (c01*c3) * vec3(+2.56609566, +7.03428198, +0.62575374) +\n" +
+    "         (c02*c3) * vec3(+4.08329484, -1.40408358, +2.14995522) +\n" +
+    "         (c12*c3) * vec3(+6.00078678, +2.55552042, +1.90739502);\n" +
+    "}\n" +
+    "\n" +
+    "float mixbox_srgb_to_linear(float x)\n" +
+    "{\n" +
+    "  return (x >= 0.04045) ? pow((x + 0.055) / 1.055, 2.4) : x/12.92;\n" +
+    "}\n" +
+    "\n" +
+    "float mixbox_linear_to_srgb(float x)\n" +
+    "{\n" +
+    "  return (x >= 0.0031308) ? 1.055*pow(x, 1.0/2.4) - 0.055 : 12.92*x;\n" +
+    "}\n" +
+    "\n" +
+    "vec3 mixbox_srgb_to_linear(vec3 rgb)\n" +
+    "{\n" +
+    "  return vec3(mixbox_srgb_to_linear(rgb.r),\n" +
+    "              mixbox_srgb_to_linear(rgb.g),\n" +
+    "              mixbox_srgb_to_linear(rgb.b));\n" +
+    "}\n" +
+    "\n" +
+    "vec3 mixbox_linear_to_srgb(vec3 rgb)\n" +
+    "{\n" +
+    "  return vec3(mixbox_linear_to_srgb(rgb.r),\n" +
+    "              mixbox_linear_to_srgb(rgb.g),\n" +
+    "              mixbox_linear_to_srgb(rgb.b));\n" +
+    "}\n" +
+    "\n" +
+    "mixbox_latent mixbox_rgb_to_latent(vec3 rgb)\n" +
+    "{\n" +
+    "#ifdef MIXBOX_COLORSPACE_LINEAR\n" +
+    "  rgb = mixbox_linear_to_srgb(clamp(rgb, 0.0, 1.0));\n" +
+    "#else\n" +
+    "  rgb = clamp(rgb, 0.0, 1.0);\n" +
+    "#endif\n" +
+    "\n" +
+    "  float x = rgb.r * 63.0;\n" +
+    "  float y = rgb.g * 63.0;\n" +
+    "  float z = rgb.b * 63.0;\n" +
+    "\n" +
+    "  float iz = floor(z);\n" +
+    "\n" +
+    "  float x0 = mod(iz, 8.0) * 64.0;\n" +
+    "  float y0 = floor(iz / 8.0) * 64.0;\n" +
+    "\n" +
+    "  float x1 = mod(iz + 1.0, 8.0) * 64.0;\n" +
+    "  float y1 = floor((iz + 1.0) / 8.0) * 64.0;\n" +
+    "\n" +
+    "  vec2 uv0 = vec2(x0 + x + 0.5, y0 + y + 0.5) / 512.0;\n" +
+    "  vec2 uv1 = vec2(x1 + x + 0.5, y1 + y + 0.5) / 512.0;\n" +
+    "\n" +
+    "  if (MIXBOX_LUT(vec2(0.5, 0.5) / 512.0).b < 0.1)\n" +
+    "  {\n" +
+    "    uv0.y = 1.0 - uv0.y;\n" +
+    "    uv1.y = 1.0 - uv1.y;\n" +
+    "  }\n" +
+    "\n" +
+    "  vec3 c = mix(MIXBOX_LUT(uv0).rgb, MIXBOX_LUT(uv1).rgb, z - iz);\n" +
+    "\n" +
+    "  return mixbox_latent(c, rgb - mixbox_eval_polynomial(c), vec3(0.0));\n" +
+    "}\n" +
+    "\n" +
+    "vec3 mixbox_latent_to_rgb(mixbox_latent latent)\n" +
+    "{\n" +
+    "  vec3 rgb = clamp(mixbox_eval_polynomial(latent[0]) + latent[1], 0.0, 1.0);\n" +
+    "\n" +
+    "#ifdef MIXBOX_COLORSPACE_LINEAR\n" +
+    "  return mixbox_srgb_to_linear(rgb);\n" +
+    "#else\n" +
+    "  return rgb;\n" +
+    "#endif\n" +
+    "}\n" +
+    "\n" +
+    "vec3 mixbox_lerp(vec3 color1, vec3 color2, float t)\n" +
+    "{\n" +
+    "  return mixbox_latent_to_rgb((1.0-t)*mixbox_rgb_to_latent(color1) + t*mixbox_rgb_to_latent(color2));\n" +
+    "}\n" +
+    "\n" +
+    "vec4 mixbox_lerp(vec4 color1, vec4 color2, float t)\n" +
+    "{\n" +
+    "  return vec4(mixbox_lerp(color1.rgb, color2.rgb, t), mix(color1.a, color2.a, t));\n" +
+    "}\n" +
+    "\n" +
+    "#endif\n";
+}
+
+var texture;
+
+function lutTexture(gl) {
+  if (!texture) {
+    var pixels = new Uint8Array(512 * 512 * 4);
+
+    for(var b = 0; b < 64; b++)
+    for(var g = 0; g < 64; g++)
+    for(var r = 0; r < 64; r++)
+    {
+      var x = (b % 8)*64 + r;
+      var y = ((b / 8) | 0)*64 + g;
+      var xyz = r + g*64 + b*64*64;
+      pixels[(x + y*512)*4 + 0] = lut[xyz+   192];
+      pixels[(x + y*512)*4 + 1] = lut[xyz+262336];
+      pixels[(x + y*512)*4 + 2] = lut[xyz+524480];
+      pixels[(x + y*512)*4 + 3] = 255;
+    }
+
+    var textureState = gl.getParameter(gl.TEXTURE_BINDING_2D);
+
+    texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.bindTexture(gl.TEXTURE_2D, textureState);
+  }
+
+  return texture;
+}
+
+function decompress(input) {
+  var output = new Uint8Array(64*64*64*3 + 4353);
+
+  var inPos = 0;
+  var outPos = 0;
+  var numBits = 0;
+  var codeBuffer = 0;
+
+  var fastBits = 9;
+  var fastMask = ((1 << fastBits) - 1);
+
+  var distExtra = [
+    0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
+    10, 10, 11, 11, 12, 12, 13, 13
+  ];
+
+  var lenghtBase = [
+    3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
+    15, 17, 19, 23, 27, 31, 35, 43, 51, 59,
+    67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
+  ];
+
+  var lengthExtra = [
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4,
+    4, 4, 4, 5, 5, 5, 5, 0, 0, 0
+  ];
+
+  var distBase = [
+    1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+    257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193,
+    12289, 16385, 24577, 0, 0
+  ];
+
+  var lengthDezigzag = [
+    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2,
+    14,
+    1, 15
+  ];
+
+  function Huffman(sizeListArray, sizeListOffset, sizeListCount) {
+    this.fast = new Uint16Array(1 << fastBits);
+    this.firstCode = new Uint16Array(16);
+    this.firstSymbol = new Uint16Array(16);
+    this.maxCode = new Int32Array(17);
+    this.size = new Uint8Array(288);
+    this.value = new Uint16Array(288);
+
+    var i = 0;
+    var k = 0;
+    var nextCode = new Int32Array(16);
+    var sizes = new Int32Array(17);
+
+    for (i = 0; i < this.fast.length; i++) this.fast[i] = 0xffff;
+    for (i = 0; i < sizeListCount; i++) { ++sizes[sizeListArray[i + sizeListOffset]]; }
+
+    sizes[0] = 0;
+    var code = 0;
+    for (i = 1; i < 16; i++) {
+      nextCode[i] = code;
+      this.firstCode[i] = code;
+      this.firstSymbol[i] = k;
+      code = (code + sizes[i]);
+      this.maxCode[i] = code << (16 - i);
+      code <<= 1;
+      k += sizes[i];
+    }
+    this.maxCode[16] = 0x10000;
+
+    for (i = 0; i < sizeListCount; i++) {
+      var s = sizeListArray[i + sizeListOffset];
+      if (s !== 0) {
+        var c = nextCode[s] - this.firstCode[s] + this.firstSymbol[s];
+        this.size[c] = s;
+        this.value[c] = i;
+        if (s <= fastBits) {
+          var j = bitReverse(nextCode[s], s);
+          while (j < (1 << fastBits)) {
+            this.fast[j] = c;
+            j += (1 << s);
+          }
+        }
+        nextCode[s] += 1;
+      }
+    }
+  }
+
+  var distance;
+  var length;
+
+  function bitReverse16(n) {
+    n = ((n & 0xAAAA) >>> 1) | ((n & 0x5555) << 1);
+    n = ((n & 0xCCCC) >>> 2) | ((n & 0x3333) << 2);
+    n = ((n & 0xF0F0) >>> 4) | ((n & 0x0F0F) << 4);
+    n = ((n & 0xFF00) >>> 8) | ((n & 0x00FF) << 8);
+    return n;
+  }
+
+  function bitReverse(v, bits) {
+    return bitReverse16(v) >>> (16 - bits);
+  }
+
+  function get8() {
+    return inPos >= input.length ? 0 : input[inPos++];
+  }
+
+  function fillBits() {
+    do {
+      codeBuffer |= (get8() << numBits);
+      numBits += 8;
+    } while (numBits <= 24);
+  }
+
+  function receive(n) {
+    if (numBits < n) fillBits();
+    var k = (codeBuffer & ((1 << n) - 1));
+    codeBuffer >>>= n;
+    numBits -= n;
+    return k;
+  }
+
+  function huffmanDecode(z) {
+    var s;
+    if (numBits < 16) fillBits();
+    var b = z.fast[codeBuffer & fastMask];
+    if (b < 0xffff) {
+      s = z.size[b];
+      codeBuffer >>>= s;
+      numBits -= s;
+      return z.value[b];
+    }
+
+    var k = bitReverse(codeBuffer, 16);
+    for (s = fastBits + 1;; ++s)
+        if (k < z.maxCode[s])
+            break;
+    if (s === 16) return -1;
+
+    b = (k >>> (16 - s)) - z.firstCode[s] + z.firstSymbol[s];
+    codeBuffer >>>= s;
+    numBits -= s;
+    return z.value[b];
+  }
+
+  function parseHuffmanBlock() {
+    for (;;) {
+      var z = huffmanDecode(length);
+      if (z < 256) {
+        output[outPos++] = z;
+      }
+      else {
+        if (z === 256) return;
+        z -= 257;
+        var len = lenghtBase[z];
+        if (lengthExtra[z] !== 0) len += receive(lengthExtra[z]);
+        z = huffmanDecode(distance);
+        var dist = distBase[z];
+        if (distExtra[z] !== 0) dist += receive(distExtra[z]);
+        dist = outPos - dist;
+        for (var i = 0; i < len; i++, dist++) { output[outPos++] = output[dist]; }
+      }
+    }
+  }
+
+  function computeHuffmanCodes() {
+    var lenCodes = new Uint8Array(286 + 32 + 137);
+    var codeLengthSizes = new Uint8Array(19);
+
+    var hlit = receive(5) + 257;
+    var hdist = receive(5) + 1;
+    var hclen = receive(4) + 4;
+
+    for (var i = 0; i < hclen; i++) { codeLengthSizes[lengthDezigzag[i]] = receive(3); }
+
+    var codeLength = new Huffman(codeLengthSizes,0,codeLengthSizes.length);
+
+    var n = 0;
+    while (n < hlit + hdist) {
+      var c = huffmanDecode(codeLength);
+
+      if (c < 16) { lenCodes[n++] = c; }
+      else if (c === 16) {
+        c = receive(2) + 3;
+        for (var i = 0; i < c; i++) lenCodes[n + i] = lenCodes[n - 1];
+        n += c;
+      }
+      else if (c === 17) {
+        c = receive(3) + 3;
+        for (var i = 0; i < c; i++) lenCodes[n + i] = 0;
+        n += c;
+      }
+      else {
+        c = receive(7) + 11;
+        for (var i = 0; i < c; i++) lenCodes[n + i] = 0;
+        n += c;
+      }
+    }
+
+    length = new Huffman(lenCodes, 0, hlit);
+    distance = new Huffman(lenCodes, hlit, hdist);
+  }
+
+  function decodeChar(c) {
+    return c >= 92 ? c-36 : c-35;
+  }
+
+  function decodeBase85(input) {
+    var output = new Uint8Array((input.length * 4) / 5);
+    var inPos = 0;
+    var outPos = 0;
+
+    while (input.charCodeAt(inPos)) {
+      var block = decodeChar(input.charCodeAt(inPos + 0)) +
+                  85*(decodeChar(input.charCodeAt(inPos + 1)) +
+                  85*(decodeChar(input.charCodeAt(inPos + 2)) +
+                  85*(decodeChar(input.charCodeAt(inPos + 3)) +
+                  85*decodeChar(input.charCodeAt(inPos + 4)))));
+
+      output[outPos + 0] = (block          & 0xFF);
+      output[outPos + 1] = ((block >>>  8) & 0xFF);
+      output[outPos + 2] = ((block >>> 16) & 0xFF);
+      output[outPos + 3] = ((block >>> 24) & 0xFF);
+
+      inPos += 5;
+      outPos += 4;
+    }
+
+    return output;
+  }
+
+  input = decodeBase85(input);
+
+  var final = false;
+  do {
+    final = receive(1) !== 0;
+    var type = receive(2);
+    computeHuffmanCodes();
+    parseHuffmanBlock();
+  } while (!final);
+
+  for (var i = 0; i < output.length; i++) {
+    output[i] = ((i & 63) ? output[i - 1] : 127) + (output[i] - 127);
+  }
+
+  return output;
+}
+
+var lut = decompress("#$6cTLFMX$M:PgZQ0uX#c3Hv... really long string rremoved for breivity")
+
+var LATENT_SIZE = 7;
+
+export default {
+  LATENT_SIZE,
+
+  lerp,
+  lerpFloat,
+  lerpLinearFloat,
+
+  rgbToLatent,
+  latentToRgb,
+
+  floatRgbToLatent,
+  latentToFloatRgb,
+
+  linearFloatRgbToLatent,
+  latentToLinearFloatRgb,
+
+  glsl,
+  lutTexture
+};
+
+# javascript\mixbox.js
+// ==========================================================
+//  MIXBOX 2.0 (c) 2022 Secret Weapons. All rights reserved.
+//  License: Creative Commons Attribution-NonCommercial 4.0
+//  Authors: Sarka Sochorova and Ondrej Jamriska
+// ==========================================================
+//
+//   BASIC USAGE
+//
+//      var rgb = mixbox.lerp(rgb1, rgb2, t);
+//
+//   MULTI-COLOR MIXING
+//
+//      var z1 = mixbox.rgbToLatent(rgb1);
+//      var z2 = mixbox.rgbToLatent(rgb2);
+//      var z3 = mixbox.rgbToLatent(rgb3);
+//
+//      var zMix = new Array(mixbox.LATENT_SIZE);
+//
+//      for (var i = 0; i < zMix.length; i++) { // mix:
+//          zMix[i] = (0.3*z1[i] +       // 30% of rgb1
+//                     0.6*z2[i] +       // 60% of rgb2
+//                     0.1*z3[i]);       // 10% of rgb3
+//      }
+//
+//      var rgbMix = mixbox.latentToRgb(zMix);
+//
+//   PIGMENT COLORS
+//
+//      Cadmium Yellow                    254, 236,   0
+//      Hansa Yellow                      252, 211,   0
+//      Cadmium Orange                    255, 105,   0
+//      Cadmium Red                       255,  39,   2
+//      Quinacridone Magenta              128,   2,  46
+//      Cobalt Violet                      78,   0,  66
+//      Ultramarine Blue                   25,   0,  89
+//      Cobalt Blue                         0,  33, 133
+//      Phthalo Blue                       13,  27,  68
+//      Phthalo Green                       0,  60,  50
+//      Permanent Green                     7, 109,  22
+//      Sap Green                         107, 148,   4
+//      Burnt Sienna                      123,  72,   0
+//
+//   LICENSING
+//
+//      If you want to obtain commercial license, please
+//      contact us at: mixbox@scrtwpns.com
+//
+
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = global || self, factory(global.mixbox = {}));
+}(this, (function (exports) { 'use strict';
+
+  function lerp(color1, color2, t) {
+    color1 = unpackColor(color1);
+    color2 = unpackColor(color2);
+
+    if (color1 !== undefined && color2 !== undefined) {
+      var latent1 = unpackedRgbToLatent(color1);
+      var latent2 = unpackedRgbToLatent(color2);
+
+      var colorMix = latentToRgb(lerpLatent(latent1, latent2, t));
+
+      if (color1.length === 3 && color2.length === 3) return colorMix;
+
+      var alpha1 = color1.length > 3 ? color1[3] : 255;
+      var alpha2 = color2.length > 3 ? color2[3] : 255;
+      colorMix[3] = (((1.0-t)*alpha1 + t*alpha2)+0.5) | 0;
+
+      return colorMix;
+    }
+  }
+
+  function lerpFloat(color1, color2, t) {
+    color1 = unpackFloatColor(color1);
+    color2 = unpackFloatColor(color2);
+
+    if (color1 !== undefined && color2 !== undefined) {
+      var latent1 = unpackedFloatRgbToLatent(color1);
+      var latent2 = unpackedFloatRgbToLatent(color2);
+
+      var colorMix = latentToFloatRgb(lerpLatent(latent1, latent2, t));
+
+      if (color1.length === 3 && color2.length === 3) return colorMix;
+
+      var alpha1 = color1.length > 3 ? color1[3] : 1.0;
+      var alpha2 = color2.length > 3 ? color2[3] : 1.0;
+      colorMix[3] = (1.0-t)*alpha1 + t*alpha2;
+
+      return colorMix;
+    }
+  }
+
+  function lerpLinearFloat(color1, color2, t) {
+    color1 = unpackLinearFloatColor(color1);
+    color2 = unpackLinearFloatColor(color2);
+
+    if (color1 !== undefined && color2 !== undefined) {
+      var latent1 = unpackedLinearFloatRgbToLatent(color1);
+      var latent2 = unpackedLinearFloatRgbToLatent(color2);
+
+      var colorMix = latentToLinearFloatRgb(lerpLatent(latent1, latent2, t));
+
+      if (color1.length === 3 && color2.length === 3) return colorMix;
+
+      var alpha1 = color1.length > 3 ? color1[3] : 1.0;
+      var alpha2 = color2.length > 3 ? color2[3] : 1.0;
+      colorMix[3] = (1.0-t)*alpha1 + t*alpha2;
+
+      return colorMix;
+    }
+  }
+
+  function rgbArray(r, g, b) {
+    var rgb = [r, g, b];
+    rgb.toString = function() {
+      return this.length > 3 ? "rgba(" + this[0] + "," + this[1] + "," + this[2] + "," + (this[3]/255.0) + ")" :
+                                "rgb(" + this[0] + "," + this[1] + "," + this[2] + ")";
+    }
+    return rgb;
+  }
+
+  function rgbToLatent(r, g, b) {
+    var rgb = unpackColor((g === undefined && b === undefined) ? (r) : [r, g, b]);
+    if (rgb !== undefined) return unpackedRgbToLatent(rgb);
+  }
+
+  function latentToRgb(latent) {
+    if (Array.isArray(latent) && latent.length === 7) {
+      var rgb = evalPolynomial(latent[0], latent[1], latent[2], latent[3]);
+      return rgbArray((clamp01(rgb[0] + latent[4])*255.0 + 0.5) | 0,
+                      (clamp01(rgb[1] + latent[5])*255.0 + 0.5) | 0,
+                      (clamp01(rgb[2] + latent[6])*255.0 + 0.5) | 0);
+    }
+  }
+
+  function floatRgbToLatent(r, g, b) {
+    var rgb = unpackFloatColor((g === undefined && b === undefined) ? r : [r, g, b]);
+    if (rgb !== undefined) return unpackedFloatRgbToLatent(rgb);
+  }
+
+  function latentToFloatRgb(latent) {
+    if (Array.isArray(latent) && latent.length === 7) {
+      var rgb = evalPolynomial(latent[0], latent[1], latent[2], latent[3]);
+      return [
+        clamp01(rgb[0] + latent[4]),
+        clamp01(rgb[1] + latent[5]),
+        clamp01(rgb[2] + latent[6])
+      ];
+    }
+  }
+
+  function linearFloatRgbToLatent(r, g, b) {
+    var rgb = unpackLinearFloatColor((g === undefined && b === undefined) ? r : [r, g, b]);
+    if (rgb !== undefined) return unpackedLinearFloatRgbToLatent(rgb);
+  }
+
+  function latentToLinearFloatRgb(latent) {
+    var rgb = latentToFloatRgb(latent);
+    if (rgb !== undefined) return [
+      srgbToLinear(rgb[0]),
+      srgbToLinear(rgb[1]),
+      srgbToLinear(rgb[2])
+    ];
+  }
+
+  function clamp(x, xmin, xmax) {
+    return Math.min(Math.max(x, xmin), xmax);
+  }
+
+  function clamp01(x) {
+    return Math.min(Math.max(x, 0.0), 1.0);
+  }
+
+  function srgbToLinear(x) {
+    return (x >= 0.04045) ? Math.pow((x + 0.055) / 1.055, 2.4) : x/12.92;
+  }
+
+  function linearToSrgb(x) {
+    return (x >= 0.0031308) ? 1.055*Math.pow(x, 1.0/2.4) - 0.055 : 12.92*x;
+  }
+
+  function lerpLatent(latent1, latent2, t) {
+    var latentMix = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+    for (var i = 0; i < 7; i++) {
+      latentMix[i] = (1.0-t)*latent1[i] + t*latent2[i];
+    }
+
+    return latentMix;
+  }
+
+  function unpackColor(color) {
+    if (Array.isArray(color) && color.length >= 3) {
+      return color;
+    }
+    if (typeof color === 'string') {
+      return parseColorString(color);
+    }
+    if (typeof color === 'object') {
+      if (typeof color.getHexString === 'function') {
+        return parseColorString(color.getHexString());
+      }
+      if (!isNaN(color.r) && !isNaN(color.g) && !isNaN(color.b)) {
+        if (isNaN(color.a)) { return [color.r, color.g, color.b]; }
+        return [color.r, color.g, color.b, color.a];
+      }
+      return parseColorString(color.toString());
+    }
+    if (typeof color === 'number' && isFinite(color) && Math.floor(color) === color && color >= 0) {
+      return [ (color >>> 16) & 255, (color >>> 8) & 255, color & 255 ];
+    }
+  }
+
+  function unpackFloatColor(color) {
+    if (Array.isArray(color) && color.length >= 3) {
+      return color;
+    }
+    if (typeof color === 'object' && !isNaN(color.r) && !isNaN(color.g) && !isNaN(color.b)) {
+      if (isNaN(color.a)) { return [color.r, color.g, color.b]; }
+      return [color.r, color.g, color.b, color.a];
+    }
+    if (color = unpackColor(color)) {
+      for (var i = 0; i < color.length; i++) { color[i] /= 255.0; }
+      return color;
+    }
+  }
+
+  function unpackLinearFloatColor(color) {
+    if (Array.isArray(color) && color.length >= 3) {
+      return color;
+    }
+    if (typeof color === 'object' && !isNaN(color.r) && !isNaN(color.g) && !isNaN(color.b)) {
+      if (isNaN(color.a)) { return [color.r, color.g, color.b]; }
+      return [color.r, color.g, color.b, color.a];
+    }
+    if (color = unpackColor(color)) {
+      for (var i = 0; i < 3; i++) { color[i] = srgbToLinear(color[i] / 255.0); }
+      if (color.length > 3) { color[3] /= 255.0; }
+      return color;
+    }
+  }
+
+  function unpackedRgbToLatent(rgb) {
+    return unpackedFloatRgbToLatent([
+      rgb[0] / 255.0,
+      rgb[1] / 255.0,
+      rgb[2] / 255.0
+    ]);
+  }
+
+  function unpackedFloatRgbToLatent(rgb) {
+    var r = clamp01(rgb[0]);
+    var g = clamp01(rgb[1]);
+    var b = clamp01(rgb[2]);
+
+    var x = r * 63.0;
+    var y = g * 63.0;
+    var z = b * 63.0;
+
+    var ix = x | 0;
+    var iy = y | 0;
+    var iz = z | 0;
+
+    var tx = x - ix;
+    var ty = y - iy;
+    var tz = z - iz;
+
+    var xyz = ix + iy*64 + iz*64*64;
+
+    var c0 = 0.0;
+    var c1 = 0.0;
+    var c2 = 0.0;
+
+    var w = 0.0;
+    w = (1.0-tx)*(1.0-ty)*(1.0-tz); c0 += w*lut[xyz+ 192]; c1 += w*lut[xyz+262336]; c2 += w*lut[xyz+524480];
+    w = (    tx)*(1.0-ty)*(1.0-tz); c0 += w*lut[xyz+ 193]; c1 += w*lut[xyz+262337]; c2 += w*lut[xyz+524481];
+    w = (1.0-tx)*(    ty)*(1.0-tz); c0 += w*lut[xyz+ 256]; c1 += w*lut[xyz+262400]; c2 += w*lut[xyz+524544];
+    w = (    tx)*(    ty)*(1.0-tz); c0 += w*lut[xyz+ 257]; c1 += w*lut[xyz+262401]; c2 += w*lut[xyz+524545];
+    w = (1.0-tx)*(1.0-ty)*(    tz); c0 += w*lut[xyz+4288]; c1 += w*lut[xyz+266432]; c2 += w*lut[xyz+528576];
+    w = (    tx)*(1.0-ty)*(    tz); c0 += w*lut[xyz+4289]; c1 += w*lut[xyz+266433]; c2 += w*lut[xyz+528577];
+    w = (1.0-tx)*(    ty)*(    tz); c0 += w*lut[xyz+4352]; c1 += w*lut[xyz+266496]; c2 += w*lut[xyz+528640];
+    w = (    tx)*(    ty)*(    tz); c0 += w*lut[xyz+4353]; c1 += w*lut[xyz+266497]; c2 += w*lut[xyz+528641];
+
+    c0 /= 255.0;
+    c1 /= 255.0;
+    c2 /= 255.0;
+
+    var c3 = 1.0 - (c0 + c1 + c2);
+
+    var c00 = c0 * c0;
+    var c11 = c1 * c1;
+    var c22 = c2 * c2;
+    var c33 = c3 * c3;
+    var c01 = c0 * c1;
+    var c02 = c0 * c2;
+    var c12 = c1 * c2;
+
+    var rmix = 0.0;
+    var gmix = 0.0;
+    var bmix = 0.0;
+
+    var w = 0.0;
+    w = c0*c00; rmix += +0.07717053*w; gmix += +0.02826978*w; bmix += +0.24832992*w;
+    w = c1*c11; rmix += +0.95912302*w; gmix += +0.80256528*w; bmix += +0.03561839*w;
+    w = c2*c22; rmix += +0.74683774*w; gmix += +0.04868586*w; bmix += +0.00000000*w;
+    w = c3*c33; rmix += +0.99518138*w; gmix += +0.99978149*w; bmix += +0.99704802*w;
+    w = c00*c1; rmix += +0.04819146*w; gmix += +0.83363781*w; bmix += +0.32515377*w;
+    w = c01*c1; rmix += -0.68146950*w; gmix += +1.46107803*w; bmix += +1.06980936*w;
+    w = c00*c2; rmix += +0.27058419*w; gmix += -0.15324870*w; bmix += +1.98735057*w;
+    w = c02*c2; rmix += +0.80478189*w; gmix += +0.67093710*w; bmix += +0.18424500*w;
+    w = c00*c3; rmix += -0.35031003*w; gmix += +1.37855826*w; bmix += +3.68865000*w;
+    w = c0*c33; rmix += +1.05128046*w; gmix += +1.97815239*w; bmix += +2.82989073*w;
+    w = c11*c2; rmix += +3.21607125*w; gmix += +0.81270228*w; bmix += +1.03384539*w;
+    w = c1*c22; rmix += +2.78893374*w; gmix += +0.41565549*w; bmix += -0.04487295*w;
+    w = c11*c3; rmix += +3.02162577*w; gmix += +2.55374103*w; bmix += +0.32766114*w;
+    w = c1*c33; rmix += +2.95124691*w; gmix += +2.81201112*w; bmix += +1.17578442*w;
+    w = c22*c3; rmix += +2.82677043*w; gmix += +0.79933038*w; bmix += +1.81715262*w;
+    w = c2*c33; rmix += +2.99691099*w; gmix += +1.22593053*w; bmix += +1.80653661*w;
+    w = c01*c2; rmix += +1.87394106*w; gmix += +2.05027182*w; bmix += -0.29835996*w;
+    w = c01*c3; rmix += +2.56609566*w; gmix += +7.03428198*w; bmix += +0.62575374*w;
+    w = c02*c3; rmix += +4.08329484*w; gmix += -1.40408358*w; bmix += +2.14995522*w;
+    w = c12*c3; rmix += +6.00078678*w; gmix += +2.55552042*w; bmix += +1.90739502*w;
+
+    return [
+      c0,
+      c1,
+      c2,
+      c3,
+      r - rmix,
+      g - gmix,
+      b - bmix,
+    ];
+  }
+
+  function unpackedLinearFloatRgbToLatent(rgb) {
+    return unpackedFloatRgbToLatent([
+      linearToSrgb(rgb[0]),
+      linearToSrgb(rgb[1]),
+      linearToSrgb(rgb[2])
+    ]);
+  }
+
+  function evalPolynomial(c0, c1, c2, c3) {
+    var r = 0.0;
+    var g = 0.0;
+    var b = 0.0;
+
+    var c00 = c0 * c0;
+    var c11 = c1 * c1;
+    var c22 = c2 * c2;
+    var c33 = c3 * c3;
+    var c01 = c0 * c1;
+    var c02 = c0 * c2;
+    var c12 = c1 * c2;
+
+    var w = 0.0;
+    w = c0*c00; r += +0.07717053*w; g += +0.02826978*w; b += +0.24832992*w;
+    w = c1*c11; r += +0.95912302*w; g += +0.80256528*w; b += +0.03561839*w;
+    w = c2*c22; r += +0.74683774*w; g += +0.04868586*w; b += +0.00000000*w;
+    w = c3*c33; r += +0.99518138*w; g += +0.99978149*w; b += +0.99704802*w;
+    w = c00*c1; r += +0.04819146*w; g += +0.83363781*w; b += +0.32515377*w;
+    w = c01*c1; r += -0.68146950*w; g += +1.46107803*w; b += +1.06980936*w;
+    w = c00*c2; r += +0.27058419*w; g += -0.15324870*w; b += +1.98735057*w;
+    w = c02*c2; r += +0.80478189*w; g += +0.67093710*w; b += +0.18424500*w;
+    w = c00*c3; r += -0.35031003*w; g += +1.37855826*w; b += +3.68865000*w;
+    w = c0*c33; r += +1.05128046*w; g += +1.97815239*w; b += +2.82989073*w;
+    w = c11*c2; r += +3.21607125*w; g += +0.81270228*w; b += +1.03384539*w;
+    w = c1*c22; r += +2.78893374*w; g += +0.41565549*w; b += -0.04487295*w;
+    w = c11*c3; r += +3.02162577*w; g += +2.55374103*w; b += +0.32766114*w;
+    w = c1*c33; r += +2.95124691*w; g += +2.81201112*w; b += +1.17578442*w;
+    w = c22*c3; r += +2.82677043*w; g += +0.79933038*w; b += +1.81715262*w;
+    w = c2*c33; r += +2.99691099*w; g += +1.22593053*w; b += +1.80653661*w;
+    w = c01*c2; r += +1.87394106*w; g += +2.05027182*w; b += -0.29835996*w;
+    w = c01*c3; r += +2.56609566*w; g += +7.03428198*w; b += +0.62575374*w;
+    w = c02*c3; r += +4.08329484*w; g += -1.40408358*w; b += +2.14995522*w;
+    w = c12*c3; r += +6.00078678*w; g += +2.55552042*w; b += +1.90739502*w;
+
+    return [r, g, b];
+  }
+
+  function hexToUint8(str) {
+    if (str.length === 1) { str = str + str; }
+    return parseInt("0x" + str, 16);
+  }
+
+  function strToUint8(str) {
+    var value = (str.charAt(str.length - 1) === '%') ? ((Number(str.slice(0, -1)) / 100.0) * 255.0) : Number(str);
+    return clamp(Math.round(value), 0, 255);
+  }
+
+  var numRegex  = /[+\-]?(?=\.\d|\d)(?:0|[1-9]\d*)?(?:\.\d*)?(?:\d[eE][+\-]?\d+)?%?/;
+  var rgbRegex  = new RegExp('^rgb\\(('+numRegex.source+'),('+numRegex.source+'),('+numRegex.source+')\\)$','i');
+  var rgbaRegex = new RegExp('^rgba\\(('+numRegex.source+'),('+numRegex.source+'),('+numRegex.source+'),('+numRegex.source+')\\)$','i');
+  var hex3Regex = /^#?([a-f0-9])([a-f0-9])([a-f0-9])$/i;
+  var hex4Regex = /^#?([a-f0-9])([a-f0-9])([a-f0-9])([a-f0-9])$/i;
+  var hex6Regex = /^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i;
+  var hex8Regex = /^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i;
+
+  function parseColorString(string) {
+    string = string.replace(/\s/g, '');
+
+    var matches;
+    if (matches = rgbRegex.exec(string))  { return [ strToUint8(matches[1]), strToUint8(matches[2]), strToUint8(matches[3]) ]; }
+    if (matches = rgbaRegex.exec(string)) { return [ strToUint8(matches[1]), strToUint8(matches[2]), strToUint8(matches[3]), clamp(Number(matches[4]) * 255.0, 0, 255) ]; }
+    if (matches = hex6Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]) ]; }
+    if (matches = hex3Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]) ]; }
+    if (matches = hex8Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]), hexToUint8(matches[4]) ]; }
+    if (matches = hex4Regex.exec(string)) { return [ hexToUint8(matches[1]), hexToUint8(matches[2]), hexToUint8(matches[3]), hexToUint8(matches[4]) ]; }
+
+    var namedColors = {
+      aliceblue : [ 240, 248, 255 ],
+      antiquewhite : [ 250, 235, 215 ],
+      aqua : [ 0, 255, 255 ],
+      aquamarine : [ 127, 255, 212 ],
+      azure : [ 240, 255, 255 ],
+      beige : [ 245, 245, 220 ],
+      bisque : [ 255, 228, 196 ],
+      black : [ 0, 0, 0 ],
+      blanchedalmond : [ 255, 235, 205 ],
+      blue : [ 0, 0, 255 ],
+      blueviolet : [ 138, 43, 226 ],
+      brown : [ 165, 42, 42 ],
+      burlywood : [ 222, 184, 135 ],
+      cadetblue : [ 95, 158, 160 ],
+      chartreuse : [ 127, 255, 0 ],
+      chocolate : [ 210, 105, 30 ],
+      coral : [ 255, 127, 80 ],
+      cornflowerblue : [ 100, 149, 237 ],
+      cornsilk : [ 255, 248, 220 ],
+      crimson : [ 220, 20, 60 ],
+      cyan : [ 0, 255, 255 ],
+      darkblue : [ 0, 0, 139 ],
+      darkcyan : [ 0, 139, 139 ],
+      darkgoldenrod : [ 184, 134, 11 ],
+      darkgray : [ 169, 169, 169 ],
+      darkgreen : [ 0, 100, 0 ],
+      darkgrey : [ 169, 169, 169 ],
+      darkkhaki : [ 189, 183, 107 ],
+      darkmagenta : [ 139, 0, 139 ],
+      darkolivegreen : [ 85, 107, 47 ],
+      darkorange : [ 255, 140, 0 ],
+      darkorchid : [ 153, 50, 204 ],
+      darkred : [ 139, 0, 0 ],
+      darksalmon : [ 233, 150, 122 ],
+      darkseagreen : [ 143, 188, 143 ],
+      darkslateblue : [ 72, 61, 139 ],
+      darkslategray : [ 47, 79, 79 ],
+      darkslategrey : [ 47, 79, 79 ],
+      darkturquoise : [ 0, 206, 209 ],
+      darkviolet : [ 148, 0, 211 ],
+      deeppink : [ 255, 20, 147 ],
+      deepskyblue : [ 0, 191, 255 ],
+      dimgray : [ 105, 105, 105 ],
+      dimgrey : [ 105, 105, 105 ],
+      dodgerblue : [ 30, 144, 255 ],
+      firebrick : [ 178, 34, 34 ],
+      floralwhite : [ 255, 250, 240 ],
+      forestgreen : [ 34, 139, 34 ],
+      fuchsia : [ 255, 0, 255 ],
+      gainsboro : [ 220, 220, 220 ],
+      ghostwhite : [ 248, 248, 255 ],
+      gold : [ 255, 215, 0 ],
+      goldenrod : [ 218, 165, 32 ],
+      gray : [ 128, 128, 128 ],
+      green : [ 0, 128, 0 ],
+      greenyellow : [ 173, 255, 47 ],
+      grey : [ 128, 128, 128 ],
+      honeydew : [ 240, 255, 240 ],
+      hotpink : [ 255, 105, 180 ],
+      indianred : [ 205, 92, 92 ],
+      indigo : [ 75, 0, 130 ],
+      ivory : [ 255, 255, 240 ],
+      khaki : [ 240, 230, 140 ],
+      lavender : [ 230, 230, 250 ],
+      lavenderblush : [ 255, 240, 245 ],
+      lawngreen : [ 124, 252, 0 ],
+      lemonchiffon : [ 255, 250, 205 ],
+      lightblue : [ 173, 216, 230 ],
+      lightcoral : [ 240, 128, 128 ],
+      lightcyan : [ 224, 255, 255 ],
+      lightgoldenrodyellow : [ 250, 250, 210 ],
+      lightgray : [ 211, 211, 211 ],
+      lightgreen : [ 144, 238, 144 ],
+      lightgrey : [ 211, 211, 211 ],
+      lightpink : [ 255, 182, 193 ],
+      lightsalmon : [ 255, 160, 122 ],
+      lightseagreen : [ 32, 178, 170 ],
+      lightskyblue : [ 135, 206, 250 ],
+      lightslategray : [ 119, 136, 153 ],
+      lightslategrey : [ 119, 136, 153 ],
+      lightsteelblue : [ 176, 196, 222 ],
+      lightyellow : [ 255, 255, 224 ],
+      lime : [ 0, 255, 0 ],
+      limegreen : [ 50, 205, 50 ],
+      linen : [ 250, 240, 230 ],
+      magenta : [ 255, 0, 255 ],
+      maroon : [ 128, 0, 0 ],
+      mediumaquamarine : [ 102, 205, 170 ],
+      mediumblue : [ 0, 0, 205 ],
+      mediumorchid : [ 186, 85, 211 ],
+      mediumpurple : [ 147, 112, 219 ],
+      mediumseagreen : [ 60, 179, 113 ],
+      mediumslateblue : [ 123, 104, 238 ],
+      mediumspringgreen : [ 0, 250, 154 ],
+      mediumturquoise : [ 72, 209, 204 ],
+      mediumvioletred : [ 199, 21, 133 ],
+      midnightblue : [ 25, 25, 112 ],
+      mintcream : [ 245, 255, 250 ],
+      mistyrose : [ 255, 228, 225 ],
+      moccasin : [ 255, 228, 181 ],
+      navajowhite : [ 255, 222, 173 ],
+      navy : [ 0, 0, 128 ],
+      oldlace : [ 253, 245, 230 ],
+      olive : [ 128, 128, 0 ],
+      olivedrab : [ 107, 142, 35 ],
+      orange : [ 255, 165, 0 ],
+      orangered : [ 255, 69, 0 ],
+      orchid : [ 218, 112, 214 ],
+      palegoldenrod : [ 238, 232, 170 ],
+      palegreen : [ 152, 251, 152 ],
+      paleturquoise : [ 175, 238, 238 ],
+      palevioletred : [ 219, 112, 147 ],
+      papayawhip : [ 255, 239, 213 ],
+      peachpuff : [ 255, 218, 185 ],
+      peru : [ 205, 133, 63 ],
+      pink : [ 255, 192, 203 ],
+      plum : [ 221, 160, 221 ],
+      powderblue : [ 176, 224, 230 ],
+      purple : [ 128, 0, 128 ],
+      red : [ 255, 0, 0 ],
+      rosybrown : [ 188, 143, 143 ],
+      royalblue : [ 65, 105, 225 ],
+      saddlebrown : [ 139, 69, 19 ],
+      salmon : [ 250, 128, 114 ],
+      sandybrown : [ 244, 164, 96 ],
+      seagreen : [ 46, 139, 87 ],
+      seashell : [ 255, 245, 238 ],
+      sienna : [ 160, 82, 45 ],
+      silver : [ 192, 192, 192 ],
+      skyblue : [ 135, 206, 235 ],
+      slateblue : [ 106, 90, 205 ],
+      slategray : [ 112, 128, 144 ],
+      slategrey : [ 112, 128, 144 ],
+      snow : [ 255, 250, 250 ],
+      springgreen : [ 0, 255, 127 ],
+      steelblue : [ 70, 130, 180 ],
+      tan : [ 210, 180, 140 ],
+      teal : [ 0, 128, 128 ],
+      thistle : [ 216, 191, 216 ],
+      tomato : [ 255, 99, 71 ],
+      turquoise : [ 64, 224, 208 ],
+      violet : [ 238, 130, 238 ],
+      wheat : [ 245, 222, 179 ],
+      white : [ 255, 255, 255 ],
+      whitesmoke : [ 245, 245, 245 ],
+      yellow : [ 255, 255, 0 ],
+      yellowgreen : [ 154, 205, 50 ],
+    };
+
+    var name = string.toLowerCase();
+    if (namedColors.hasOwnProperty(name)) return namedColors[name];
+  }
+
+  function glsl() {
+    return "#ifndef MIXBOX_INCLUDED\n" +
+      "#define MIXBOX_INCLUDED\n" +
+      "\n" +
+      "#ifndef MIXBOX_LUT\n" +
+      "  #if __VERSION__ <= 120\n" +
+      "    #define MIXBOX_LUT(UV) texture2D(mixbox_lut, UV)\n" +
+      "  #else\n" +
+      "    #define MIXBOX_LUT(UV) textureLod(mixbox_lut, UV, 0.0)\n" +
+      "  #endif\n" +
+      "#endif\n" +
+      "\n" +
+      "#define mixbox_latent mat3\n" +
+      "\n" +
+      "vec3 mixbox_eval_polynomial(vec3 c)\n" +
+      "{\n" +
+      "  float c0 = c[0];\n" +
+      "  float c1 = c[1];\n" +
+      "  float c2 = c[2];\n" +
+      "  float c3 = 1.0 - (c0 + c1 + c2);\n" +
+      "\n" +
+      "  float c00 = c0 * c0;\n" +
+      "  float c11 = c1 * c1;\n" +
+      "  float c22 = c2 * c2;\n" +
+      "  float c01 = c0 * c1;\n" +
+      "  float c02 = c0 * c2;\n" +
+      "  float c12 = c1 * c2;\n" +
+      "  float c33 = c3 * c3;\n" +
+      "\n" +
+      "  return (c0*c00) * vec3(+0.07717053, +0.02826978, +0.24832992) +\n" +
+      "         (c1*c11) * vec3(+0.95912302, +0.80256528, +0.03561839) +\n" +
+      "         (c2*c22) * vec3(+0.74683774, +0.04868586, +0.00000000) +\n" +
+      "         (c3*c33) * vec3(+0.99518138, +0.99978149, +0.99704802) +\n" +
+      "         (c00*c1) * vec3(+0.04819146, +0.83363781, +0.32515377) +\n" +
+      "         (c01*c1) * vec3(-0.68146950, +1.46107803, +1.06980936) +\n" +
+      "         (c00*c2) * vec3(+0.27058419, -0.15324870, +1.98735057) +\n" +
+      "         (c02*c2) * vec3(+0.80478189, +0.67093710, +0.18424500) +\n" +
+      "         (c00*c3) * vec3(-0.35031003, +1.37855826, +3.68865000) +\n" +
+      "         (c0*c33) * vec3(+1.05128046, +1.97815239, +2.82989073) +\n" +
+      "         (c11*c2) * vec3(+3.21607125, +0.81270228, +1.03384539) +\n" +
+      "         (c1*c22) * vec3(+2.78893374, +0.41565549, -0.04487295) +\n" +
+      "         (c11*c3) * vec3(+3.02162577, +2.55374103, +0.32766114) +\n" +
+      "         (c1*c33) * vec3(+2.95124691, +2.81201112, +1.17578442) +\n" +
+      "         (c22*c3) * vec3(+2.82677043, +0.79933038, +1.81715262) +\n" +
+      "         (c2*c33) * vec3(+2.99691099, +1.22593053, +1.80653661) +\n" +
+      "         (c01*c2) * vec3(+1.87394106, +2.05027182, -0.29835996) +\n" +
+      "         (c01*c3) * vec3(+2.56609566, +7.03428198, +0.62575374) +\n" +
+      "         (c02*c3) * vec3(+4.08329484, -1.40408358, +2.14995522) +\n" +
+      "         (c12*c3) * vec3(+6.00078678, +2.55552042, +1.90739502);\n" +
+      "}\n" +
+      "\n" +
+      "float mixbox_srgb_to_linear(float x)\n" +
+      "{\n" +
+      "  return (x >= 0.04045) ? pow((x + 0.055) / 1.055, 2.4) : x/12.92;\n" +
+      "}\n" +
+      "\n" +
+      "float mixbox_linear_to_srgb(float x)\n" +
+      "{\n" +
+      "  return (x >= 0.0031308) ? 1.055*pow(x, 1.0/2.4) - 0.055 : 12.92*x;\n" +
+      "}\n" +
+      "\n" +
+      "vec3 mixbox_srgb_to_linear(vec3 rgb)\n" +
+      "{\n" +
+      "  return vec3(mixbox_srgb_to_linear(rgb.r),\n" +
+      "              mixbox_srgb_to_linear(rgb.g),\n" +
+      "              mixbox_srgb_to_linear(rgb.b));\n" +
+      "}\n" +
+      "\n" +
+      "vec3 mixbox_linear_to_srgb(vec3 rgb)\n" +
+      "{\n" +
+      "  return vec3(mixbox_linear_to_srgb(rgb.r),\n" +
+      "              mixbox_linear_to_srgb(rgb.g),\n" +
+      "              mixbox_linear_to_srgb(rgb.b));\n" +
+      "}\n" +
+      "\n" +
+      "mixbox_latent mixbox_rgb_to_latent(vec3 rgb)\n" +
+      "{\n" +
+      "#ifdef MIXBOX_COLORSPACE_LINEAR\n" +
+      "  rgb = mixbox_linear_to_srgb(clamp(rgb, 0.0, 1.0));\n" +
+      "#else\n" +
+      "  rgb = clamp(rgb, 0.0, 1.0);\n" +
+      "#endif\n" +
+      "\n" +
+      "  float x = rgb.r * 63.0;\n" +
+      "  float y = rgb.g * 63.0;\n" +
+      "  float z = rgb.b * 63.0;\n" +
+      "\n" +
+      "  float iz = floor(z);\n" +
+      "\n" +
+      "  float x0 = mod(iz, 8.0) * 64.0;\n" +
+      "  float y0 = floor(iz / 8.0) * 64.0;\n" +
+      "\n" +
+      "  float x1 = mod(iz + 1.0, 8.0) * 64.0;\n" +
+      "  float y1 = floor((iz + 1.0) / 8.0) * 64.0;\n" +
+      "\n" +
+      "  vec2 uv0 = vec2(x0 + x + 0.5, y0 + y + 0.5) / 512.0;\n" +
+      "  vec2 uv1 = vec2(x1 + x + 0.5, y1 + y + 0.5) / 512.0;\n" +
+      "\n" +
+      "  if (MIXBOX_LUT(vec2(0.5, 0.5) / 512.0).b < 0.1)\n" +
+      "  {\n" +
+      "    uv0.y = 1.0 - uv0.y;\n" +
+      "    uv1.y = 1.0 - uv1.y;\n" +
+      "  }\n" +
+      "\n" +
+      "  vec3 c = mix(MIXBOX_LUT(uv0).rgb, MIXBOX_LUT(uv1).rgb, z - iz);\n" +
+      "\n" +
+      "  return mixbox_latent(c, rgb - mixbox_eval_polynomial(c), vec3(0.0));\n" +
+      "}\n" +
+      "\n" +
+      "vec3 mixbox_latent_to_rgb(mixbox_latent latent)\n" +
+      "{\n" +
+      "  vec3 rgb = clamp(mixbox_eval_polynomial(latent[0]) + latent[1], 0.0, 1.0);\n" +
+      "\n" +
+      "#ifdef MIXBOX_COLORSPACE_LINEAR\n" +
+      "  return mixbox_srgb_to_linear(rgb);\n" +
+      "#else\n" +
+      "  return rgb;\n" +
+      "#endif\n" +
+      "}\n" +
+      "\n" +
+      "vec3 mixbox_lerp(vec3 color1, vec3 color2, float t)\n" +
+      "{\n" +
+      "  return mixbox_latent_to_rgb((1.0-t)*mixbox_rgb_to_latent(color1) + t*mixbox_rgb_to_latent(color2));\n" +
+      "}\n" +
+      "\n" +
+      "vec4 mixbox_lerp(vec4 color1, vec4 color2, float t)\n" +
+      "{\n" +
+      "  return vec4(mixbox_lerp(color1.rgb, color2.rgb, t), mix(color1.a, color2.a, t));\n" +
+      "}\n" +
+      "\n" +
+      "#endif\n";
+  }
+
+  var texture;
+
+  function lutTexture(gl) {
+    if (!texture) {
+      var pixels = new Uint8Array(512 * 512 * 4);
+
+      for(var b = 0; b < 64; b++)
+      for(var g = 0; g < 64; g++)
+      for(var r = 0; r < 64; r++)
+      {
+        var x = (b % 8)*64 + r;
+        var y = ((b / 8) | 0)*64 + g;
+        var xyz = r + g*64 + b*64*64;
+        pixels[(x + y*512)*4 + 0] = lut[xyz+   192];
+        pixels[(x + y*512)*4 + 1] = lut[xyz+262336];
+        pixels[(x + y*512)*4 + 2] = lut[xyz+524480];
+        pixels[(x + y*512)*4 + 3] = 255;
+      }
+
+      var textureState = gl.getParameter(gl.TEXTURE_BINDING_2D);
+
+      texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+      gl.bindTexture(gl.TEXTURE_2D, textureState);
+    }
+
+    return texture;
+  }
+
+  function decompress(input) {
+    var output = new Uint8Array(64*64*64*3 + 4353);
+
+    var inPos = 0;
+    var outPos = 0;
+    var numBits = 0;
+    var codeBuffer = 0;
+
+    var fastBits = 9;
+    var fastMask = ((1 << fastBits) - 1);
+
+    var distExtra = [
+      0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
+      10, 10, 11, 11, 12, 12, 13, 13
+    ];
+
+    var lenghtBase = [
+      3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
+      15, 17, 19, 23, 27, 31, 35, 43, 51, 59,
+      67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
+    ];
+
+    var lengthExtra = [
+      0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4,
+      4, 4, 4, 5, 5, 5, 5, 0, 0, 0
+    ];
+
+    var distBase = [
+      1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
+      257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193,
+      12289, 16385, 24577, 0, 0
+    ];
+
+    var lengthDezigzag = [
+      16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2,
+      14,
+      1, 15
+    ];
+
+    function Huffman(sizeListArray, sizeListOffset, sizeListCount) {
+      this.fast = new Uint16Array(1 << fastBits);
+      this.firstCode = new Uint16Array(16);
+      this.firstSymbol = new Uint16Array(16);
+      this.maxCode = new Int32Array(17);
+      this.size = new Uint8Array(288);
+      this.value = new Uint16Array(288);
+
+      var i = 0;
+      var k = 0;
+      var nextCode = new Int32Array(16);
+      var sizes = new Int32Array(17);
+
+      for (i = 0; i < this.fast.length; i++) this.fast[i] = 0xffff;
+      for (i = 0; i < sizeListCount; i++) { ++sizes[sizeListArray[i + sizeListOffset]]; }
+
+      sizes[0] = 0;
+      var code = 0;
+      for (i = 1; i < 16; i++) {
+        nextCode[i] = code;
+        this.firstCode[i] = code;
+        this.firstSymbol[i] = k;
+        code = (code + sizes[i]);
+        this.maxCode[i] = code << (16 - i);
+        code <<= 1;
+        k += sizes[i];
+      }
+      this.maxCode[16] = 0x10000;
+
+      for (i = 0; i < sizeListCount; i++) {
+        var s = sizeListArray[i + sizeListOffset];
+        if (s !== 0) {
+          var c = nextCode[s] - this.firstCode[s] + this.firstSymbol[s];
+          this.size[c] = s;
+          this.value[c] = i;
+          if (s <= fastBits) {
+            var j = bitReverse(nextCode[s], s);
+            while (j < (1 << fastBits)) {
+              this.fast[j] = c;
+              j += (1 << s);
+            }
+          }
+          nextCode[s] += 1;
+        }
+      }
+    }
+
+    var distance;
+    var length;
+
+    function bitReverse16(n) {
+      n = ((n & 0xAAAA) >>> 1) | ((n & 0x5555) << 1);
+      n = ((n & 0xCCCC) >>> 2) | ((n & 0x3333) << 2);
+      n = ((n & 0xF0F0) >>> 4) | ((n & 0x0F0F) << 4);
+      n = ((n & 0xFF00) >>> 8) | ((n & 0x00FF) << 8);
+      return n;
+    }
+
+    function bitReverse(v, bits) {
+      return bitReverse16(v) >>> (16 - bits);
+    }
+
+    function get8() {
+      return inPos >= input.length ? 0 : input[inPos++];
+    }
+
+    function fillBits() {
+      do {
+        codeBuffer |= (get8() << numBits);
+        numBits += 8;
+      } while (numBits <= 24);
+    }
+
+    function receive(n) {
+      if (numBits < n) fillBits();
+      var k = (codeBuffer & ((1 << n) - 1));
+      codeBuffer >>>= n;
+      numBits -= n;
+      return k;
+    }
+
+    function huffmanDecode(z) {
+      var s;
+      if (numBits < 16) fillBits();
+      var b = z.fast[codeBuffer & fastMask];
+      if (b < 0xffff) {
+        s = z.size[b];
+        codeBuffer >>>= s;
+        numBits -= s;
+        return z.value[b];
+      }
+
+      var k = bitReverse(codeBuffer, 16);
+      for (s = fastBits + 1;; ++s)
+          if (k < z.maxCode[s])
+              break;
+      if (s === 16) return -1;
+
+      b = (k >>> (16 - s)) - z.firstCode[s] + z.firstSymbol[s];
+      codeBuffer >>>= s;
+      numBits -= s;
+      return z.value[b];
+    }
+
+    function parseHuffmanBlock() {
+      for (;;) {
+        var z = huffmanDecode(length);
+        if (z < 256) {
+          output[outPos++] = z;
+        }
+        else {
+          if (z === 256) return;
+          z -= 257;
+          var len = lenghtBase[z];
+          if (lengthExtra[z] !== 0) len += receive(lengthExtra[z]);
+          z = huffmanDecode(distance);
+          var dist = distBase[z];
+          if (distExtra[z] !== 0) dist += receive(distExtra[z]);
+          dist = outPos - dist;
+          for (var i = 0; i < len; i++, dist++) { output[outPos++] = output[dist]; }
+        }
+      }
+    }
+
+    function computeHuffmanCodes() {
+      var lenCodes = new Uint8Array(286 + 32 + 137);
+      var codeLengthSizes = new Uint8Array(19);
+
+      var hlit = receive(5) + 257;
+      var hdist = receive(5) + 1;
+      var hclen = receive(4) + 4;
+
+      for (var i = 0; i < hclen; i++) { codeLengthSizes[lengthDezigzag[i]] = receive(3); }
+
+      var codeLength = new Huffman(codeLengthSizes,0,codeLengthSizes.length);
+
+      var n = 0;
+      while (n < hlit + hdist) {
+        var c = huffmanDecode(codeLength);
+
+        if (c < 16) { lenCodes[n++] = c; }
+        else if (c === 16) {
+          c = receive(2) + 3;
+          for (var i = 0; i < c; i++) lenCodes[n + i] = lenCodes[n - 1];
+          n += c;
+        }
+        else if (c === 17) {
+          c = receive(3) + 3;
+          for (var i = 0; i < c; i++) lenCodes[n + i] = 0;
+          n += c;
+        }
+        else {
+          c = receive(7) + 11;
+          for (var i = 0; i < c; i++) lenCodes[n + i] = 0;
+          n += c;
+        }
+      }
+
+      length = new Huffman(lenCodes, 0, hlit);
+      distance = new Huffman(lenCodes, hlit, hdist);
+    }
+
+    function decodeChar(c) {
+      return c >= 92 ? c-36 : c-35;
+    }
+
+    function decodeBase85(input) {
+      var output = new Uint8Array((input.length * 4) / 5);
+      var inPos = 0;
+      var outPos = 0;
+
+      while (input.charCodeAt(inPos)) {
+        var block = decodeChar(input.charCodeAt(inPos + 0)) +
+                    85*(decodeChar(input.charCodeAt(inPos + 1)) +
+                    85*(decodeChar(input.charCodeAt(inPos + 2)) +
+                    85*(decodeChar(input.charCodeAt(inPos + 3)) +
+                    85*decodeChar(input.charCodeAt(inPos + 4)))));
+
+        output[outPos + 0] = (block          & 0xFF);
+        output[outPos + 1] = ((block >>>  8) & 0xFF);
+        output[outPos + 2] = ((block >>> 16) & 0xFF);
+        output[outPos + 3] = ((block >>> 24) & 0xFF);
+
+        inPos += 5;
+        outPos += 4;
+      }
+
+      return output;
+    }
+
+    input = decodeBase85(input);
+
+    var final = false;
+    do {
+      final = receive(1) !== 0;
+      var type = receive(2);
+      computeHuffmanCodes();
+      parseHuffmanBlock();
+    } while (!final);
+
+    for (var i = 0; i < output.length; i++) {
+      output[i] = ((i & 63) ? output[i - 1] : 127) + (output[i] - 127);
+    }
+
+    return output;
+  }
+
+  var lut = decompress("#$6cTLFMX$M removing for brevity") 
+
+  exports.LATENT_SIZE = 7;
+
+  exports.lerp = lerp;
+  exports.lerpFloat = lerpFloat;
+  exports.lerpLinearFloat = lerpLinearFloat;
+
+  exports.rgbToLatent = rgbToLatent;
+  exports.latentToRgb = latentToRgb;
+
+  exports.floatRgbToLatent = floatRgbToLatent;
+  exports.latentToFloatRgb = latentToFloatRgb;
+
+  exports.linearFloatRgbToLatent = linearFloatRgbToLatent;
+  exports.latentToLinearFloatRgb = latentToLinearFloatRgb;
+
+  exports.glsl = glsl;
+  exports.lutTexture = lutTexture;
+
+})));
+
+# python\README.md
+# Mixbox for Python
+```
+pip install pymixbox
+```
+
+## Usage
+```python
+import mixbox
+
+rgb1 = (0, 33, 133)  # blue
+rgb2 = (252, 211, 0) # yellow
+t = 0.5              # mixing ratio
+
+rgb_mix = mixbox.lerp(rgb1,rgb2,t)
+
+print(rgb_mix)
+```
+
+## Mixing Multiple Colors
+```python
+z1 = mixbox.rgb_to_latent(rgb1)
+z2 = mixbox.rgb_to_latent(rgb2)
+z3 = mixbox.rgb_to_latent(rgb3)
+
+z_mix = [0] * mixbox.LATENT_SIZE
+
+for i in range(len(z_mix)):     # mix together:
+    z_mix[i] = (0.3*z1[i] +     #   30% of rgb1
+                0.6*z2[i] +     #   60% of rgb2
+                0.1*z3[i])      #   10% of rgb3
+
+rgb_mix = mixbox.latent_to_rgb(z_mix)
+```
+
+## Pigment Colors
+| Pigment |  | RGB | Float RGB | Linear RGB |
+| --- | --- |:----:|:----:|:----:|
+| Cadmium Yellow | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_yellow.png"/> | 254, 236, 0  | 0.996, 0.925, 0.0 | 0.991, 0.839, 0.0 |
+| Hansa Yellow | <img src="https://scrtwpns.com/mixbox/pigments/hansa_yellow.png"/> | 252, 211, 0  | 0.988, 0.827, 0.0 | 0.973, 0.651, 0.0 |
+| Cadmium Orange | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_orange.png"/> | 255, 105, 0  | 1.0, 0.412, 0.0 | 1.0, 0.141, 0.0 |
+| Cadmium Red | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_red.png"/> | 255, 39, 2  | 1.0, 0.153, 0.008 | 1.0, 0.02, 0.001 |
+| Quinacridone Magenta | <img src="https://scrtwpns.com/mixbox/pigments/quinacridone_magenta.png"/> | 128, 2, 46  | 0.502, 0.008, 0.18 | 0.216, 0.001, 0.027 |
+| Cobalt Violet | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_violet.png"/> | 78, 0, 66  | 0.306, 0.0, 0.259 | 0.076, 0.0, 0.054 |
+| Ultramarine Blue | <img src="https://scrtwpns.com/mixbox/pigments/ultramarine_blue.png"/> | 25, 0, 89  | 0.098, 0.0, 0.349 | 0.01, 0.0, 0.1 |
+| Cobalt Blue | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_blue.png"/> | 0, 33, 133  | 0.0, 0.129, 0.522 | 0.0, 0.015, 0.235 |
+| Phthalo Blue | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_blue.png"/> | 13, 27, 68  | 0.051, 0.106, 0.267 | 0.004, 0.011, 0.058 |
+| Phthalo Green | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_green.png"/> | 0, 60, 50  | 0.0, 0.235, 0.196 | 0.0, 0.045, 0.032 |
+| Permanent Green | <img src="https://scrtwpns.com/mixbox/pigments/permanent_green.png"/> | 7, 109, 22  | 0.027, 0.427, 0.086 | 0.002, 0.153, 0.008 |
+| Sap Green | <img src="https://scrtwpns.com/mixbox/pigments/sap_green.png"/> | 107, 148, 4  | 0.42, 0.58, 0.016 | 0.147, 0.296, 0.001 |
+| Burnt Sienna | <img src="https://scrtwpns.com/mixbox/pigments/burnt_sienna.png"/> | 123, 72, 0  | 0.482, 0.282, 0.0 | 0.198, 0.065, 0.0 |
+
+## License
+Copyright (c) 2022, Secret Weapons. All rights reserved.<br>
+Mixbox is provided under the CC BY-NC 4.0 license for non-commercial use only.<br>
+If you want to obtain commercial license, please contact: mixbox@scrtwpns.com
+
+# python\examples\blender.py
+import bpy
+import mixbox
+
+rgb1 = (0.0, 0.015, 0.235) # blue
+rgb2 = (0.973, 0.651, 0.0) # yellow
+
+n = 5
+for i in range(0, n):
+  bpy.ops.mesh.primitive_cube_add(location = ((i - n/2 + 0.5) * 3, 0, 0))
+  mat = bpy.data.materials.new("material")
+  mat.diffuse_color = mixbox.lerp_linear_float(rgb1, rgb2, i / (n - 1))
+  bpy.context.object.active_material = mat
+
+# python\examples\hello.py
+import mixbox
+
+rgb1 = (0, 33, 133)  # blue
+rgb2 = (252, 211, 0) # yellow
+t = 0.5              # mixing ratio
+
+rgb_mix = mixbox.lerp(rgb1, rgb2, t)
+
+print(rgb_mix)
+
+# python\examples\npcv.py
+import cv2
+import numpy as np
+import mixbox
+
+height = 256
+width = 256
+img = np.zeros((height, width, 3), np.uint8)
+
+rgb1 = (0, 33, 133)  # blue
+rgb2 = (252, 211, 0) # yellow
+
+for x in range(0, 256):
+	for y in range(0, 256):
+		img[x, y] = mixbox.lerp(rgb1, rgb2, x / 255.0)
+
+cv2.imshow("image", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+cv2.waitKey(0)
+
+# python\examples\opengl.py
+import pygame as pg
+from pygame.locals import *
+
+from OpenGL.GL import *
+from OpenGL.GLU import *
+
+import mixbox
+
+pg.init()
+pg.display.set_mode((640, 480), DOUBLEBUF | OPENGL)
+
+while True:
+  rgb1 = (0.0, 0.129, 0.522) # blue
+  rgb2 = (0.988, 0.827, 0.0) # yellow
+
+  n = 640
+  glBegin(GL_LINES)
+  for i in range(0, n+1):
+    glColor(mixbox.lerp_float(rgb1, rgb2, i / n))
+    glVertex((i / n)*2 - 1, -1)
+    glVertex((i / n)*2 - 1, +1)
+  glEnd()
+
+  pg.display.flip()
+
+  for event in pg.event.get():
+    if event.type == pg.QUIT:
+      pg.quit()
+      quit()
+
+# python\examples\pillow.py
+from PIL import Image
+import mixbox
+
+rgb1 = (0, 33, 133)  # blue
+rgb2 = (252, 211, 0) # yellow
+
+img = Image.new('RGB', (256, 256))
+
+pixels = img.load()
+
+width,height = img.size
+for x in range(width):
+    for y in range(height):
+    	pixels[x, y] = mixbox.lerp(rgb1, rgb2, x / 256.0)
+
+img.show()
+
+# python\mixbox.py
+# ==========================================================
+#  MIXBOX 2.0 (c) 2022 Secret Weapons. All rights reserved.
+#  License: Creative Commons Attribution-NonCommercial 4.0
+#  Authors: Sarka Sochorova and Ondrej Jamriska
+# ==========================================================
+"""
+    Natural color mixing based on real pigments.
+
+    BASIC USAGE
+
+       rgb = mixbox.lerp(rgb1, rgb2, t)
+
+    MULTI-COLOR MIXING
+
+       z1 = mixbox.rgb_to_latent(rgb1)
+       z2 = mixbox.rgb_to_latent(rgb2)
+       z3 = mixbox.rgb_to_latent(rgb3)
+
+       z_mix = [0] * mixbox.LATENT_SIZE
+
+       for i in range(len(z_mix)):     # mix together:
+           z_mix[i] = (0.3*z1[i] +     #   30% of rgb1
+                       0.6*z2[i] +     #   60% of rgb2
+                       0.1*z3[i])      #   10% of rgb3
+
+       rgb_mix = mixbox.latent_to_rgb(z_mix)
+
+    PIGMENT COLORS
+
+       Cadmium Yellow                    254, 236,   0
+       Hansa Yellow                      252, 211,   0
+       Cadmium Orange                    255, 105,   0
+       Cadmium Red                       255,  39,   2
+       Quinacridone Magenta              128,   2,  46
+       Cobalt Violet                      78,   0,  66
+       Ultramarine Blue                   25,   0,  89
+       Cobalt Blue                         0,  33, 133
+       Phthalo Blue                       13,  27,  68
+       Phthalo Green                       0,  60,  50
+       Permanent Green                     7, 109,  22
+       Sap Green                         107, 148,   4
+       Burnt Sienna                      123,  72,   0
+
+    LICENSING
+
+       If you want to obtain commercial license, please
+       contact us at: mixbox@scrtwpns.com
+
+"""
+
+import zlib
+import base64
+
+LATENT_SIZE = 7
+
+def lerp(color1, color2, t):
+    len1 = len(color1)
+    len2 = len(color2)
+
+    latent1 = rgb_to_latent(color1)
+    latent2 = rgb_to_latent(color2)
+
+    rgb = latent_to_rgb(_lerp_latent(latent1, latent2, t))
+
+    if len1 == 3 and len2 == 3: return rgb
+
+    a1 = color1[3] if len1 > 3 else 255
+    a2 = color2[3] if len2 > 3 else 255
+    a = round((1.0-t)*a1 + t*a2)
+
+    return (rgb[0], rgb[1], rgb[2], a)
+
+def lerp_float(color1, color2, t):
+    len1 = len(color1)
+    len2 = len(color2)
+
+    latent1 = float_rgb_to_latent(color1)
+    latent2 = float_rgb_to_latent(color2)
+
+    rgb = latent_to_float_rgb(_lerp_latent(latent1, latent2, t))
+
+    if len1 == 3 and len2 == 3: return rgb
+
+    a1 = color1[3] if len1 > 3 else 1.0
+    a2 = color2[3] if len2 > 3 else 1.0
+    a = (1.0-t)*a1 + t*a2
+
+    return (rgb[0], rgb[1], rgb[2], a)
+
+def lerp_linear_float(color1, color2, t):
+    len1 = len(color1)
+    len2 = len(color2)
+
+    latent1 = linear_float_rgb_to_latent(color1)
+    latent2 = linear_float_rgb_to_latent(color2)
+
+    rgb = latent_to_linear_float_rgb(_lerp_latent(latent1, latent2, t))
+
+    if len1 == 3 and len2 == 3: return rgb
+
+    a1 = color1[3] if len1 > 3 else 1.0
+    a2 = color2[3] if len2 > 3 else 1.0
+    a = (1.0-t)*a1 + t*a2
+
+    return (rgb[0], rgb[1], rgb[2], a)
+
+def rgb_to_latent(rgb):
+    return float_rgb_to_latent((rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0))
+
+def latent_to_rgb(latent):
+    rgb = _eval_polynomial(latent[0], latent[1], latent[2], latent[3])
+    return (
+        int(round(_clamp01(rgb[0] + latent[4]) * 255.0)),
+        int(round(_clamp01(rgb[1] + latent[5]) * 255.0)),
+        int(round(_clamp01(rgb[2] + latent[6]) * 255.0))
+    )
+
+def float_rgb_to_latent(rgb):
+    r = _clamp01(rgb[0])
+    g = _clamp01(rgb[1])
+    b = _clamp01(rgb[2])
+
+    x = r * 63.0
+    y = g * 63.0
+    z = b * 63.0
+
+    ix = int(x)
+    iy = int(y)
+    iz = int(z)
+
+    tx = x - ix
+    ty = y - iy
+    tz = z - iz
+
+    xyz = (ix + iy*64 + iz*64*64) & 0x3FFFF
+
+    c0 = 0.0
+    c1 = 0.0
+    c2 = 0.0
+
+    w = (1.0-tx)*(1.0-ty)*(1.0-tz); c0 += w*_lut[xyz+ 192]; c1 += w*_lut[xyz+262336]; c2 += w*_lut[xyz+524480];
+    w = (    tx)*(1.0-ty)*(1.0-tz); c0 += w*_lut[xyz+ 193]; c1 += w*_lut[xyz+262337]; c2 += w*_lut[xyz+524481];
+    w = (1.0-tx)*(    ty)*(1.0-tz); c0 += w*_lut[xyz+ 256]; c1 += w*_lut[xyz+262400]; c2 += w*_lut[xyz+524544];
+    w = (    tx)*(    ty)*(1.0-tz); c0 += w*_lut[xyz+ 257]; c1 += w*_lut[xyz+262401]; c2 += w*_lut[xyz+524545];
+    w = (1.0-tx)*(1.0-ty)*(    tz); c0 += w*_lut[xyz+4288]; c1 += w*_lut[xyz+266432]; c2 += w*_lut[xyz+528576];
+    w = (    tx)*(1.0-ty)*(    tz); c0 += w*_lut[xyz+4289]; c1 += w*_lut[xyz+266433]; c2 += w*_lut[xyz+528577];
+    w = (1.0-tx)*(    ty)*(    tz); c0 += w*_lut[xyz+4352]; c1 += w*_lut[xyz+266496]; c2 += w*_lut[xyz+528640];
+    w = (    tx)*(    ty)*(    tz); c0 += w*_lut[xyz+4353]; c1 += w*_lut[xyz+266497]; c2 += w*_lut[xyz+528641];
+
+    c0 /= 255.0
+    c1 /= 255.0
+    c2 /= 255.0
+
+    c3 = 1.0 - (c0 + c1 + c2)
+
+    mixrgb = _eval_polynomial(c0, c1, c2, c3)
+
+    return (
+        c0,
+        c1,
+        c2,
+        c3,
+        r - mixrgb[0],
+        g - mixrgb[1],
+        b - mixrgb[2],
+    )
+
+def latent_to_float_rgb(latent):
+    rgb = _eval_polynomial(latent[0], latent[1], latent[2], latent[3])
+    return (
+        _clamp01(rgb[0] + latent[4]),
+        _clamp01(rgb[1] + latent[5]),
+        _clamp01(rgb[2] + latent[6])
+    )
+
+def linear_float_rgb_to_latent(rgb):
+    return float_rgb_to_latent((
+        _linear_to_srgb(rgb[0]),
+        _linear_to_srgb(rgb[1]),
+        _linear_to_srgb(rgb[2])
+    ))
+
+def latent_to_linear_float_rgb(latent):
+    rgb = latent_to_float_rgb(latent)
+    return (
+        _srgb_to_linear(rgb[0]),
+        _srgb_to_linear(rgb[1]),
+        _srgb_to_linear(rgb[2])
+    )
+
+def _lerp_latent(latent1, latent2, t):
+    return [(1.0-t)*latent1[i] + t*latent2[i] for i in range(LATENT_SIZE)]
+
+def _clamp01(x):
+    return min(max(x, 0.0), 1.0)
+
+def _srgb_to_linear(x):
+    return pow((x+0.055)/1.055, 2.4) if x >= 0.04045 else x/12.92
+
+def _linear_to_srgb(x):
+    return 1.055*pow(x, 1.0/2.4)-0.055 if x >= 0.0031308 else 12.92*x
+
+def _eval_polynomial(c0, c1, c2, c3):
+    r = 0.0
+    g = 0.0
+    b = 0.0
+
+    c00 = c0 * c0
+    c11 = c1 * c1
+    c22 = c2 * c2
+    c33 = c3 * c3
+    c01 = c0 * c1
+    c02 = c0 * c2
+    c12 = c1 * c2
+
+    w = c0*c00; r += +0.07717053*w; g += +0.02826978*w; b += +0.24832992*w
+    w = c1*c11; r += +0.95912302*w; g += +0.80256528*w; b += +0.03561839*w
+    w = c2*c22; r += +0.74683774*w; g += +0.04868586*w; b += +0.00000000*w
+    w = c3*c33; r += +0.99518138*w; g += +0.99978149*w; b += +0.99704802*w
+    w = c00*c1; r += +0.04819146*w; g += +0.83363781*w; b += +0.32515377*w
+    w = c01*c1; r += -0.68146950*w; g += +1.46107803*w; b += +1.06980936*w
+    w = c00*c2; r += +0.27058419*w; g += -0.15324870*w; b += +1.98735057*w
+    w = c02*c2; r += +0.80478189*w; g += +0.67093710*w; b += +0.18424500*w
+    w = c00*c3; r += -0.35031003*w; g += +1.37855826*w; b += +3.68865000*w
+    w = c0*c33; r += +1.05128046*w; g += +1.97815239*w; b += +2.82989073*w
+    w = c11*c2; r += +3.21607125*w; g += +0.81270228*w; b += +1.03384539*w
+    w = c1*c22; r += +2.78893374*w; g += +0.41565549*w; b += -0.04487295*w
+    w = c11*c3; r += +3.02162577*w; g += +2.55374103*w; b += +0.32766114*w
+    w = c1*c33; r += +2.95124691*w; g += +2.81201112*w; b += +1.17578442*w
+    w = c22*c3; r += +2.82677043*w; g += +0.79933038*w; b += +1.81715262*w
+    w = c2*c33; r += +2.99691099*w; g += +1.22593053*w; b += +1.80653661*w
+    w = c01*c2; r += +1.87394106*w; g += +2.05027182*w; b += -0.29835996*w
+    w = c01*c3; r += +2.56609566*w; g += +7.03428198*w; b += +0.62575374*w
+    w = c02*c3; r += +4.08329484*w; g += -1.40408358*w; b += +2.14995522*w
+    w = c12*c3; r += +6.00078678*w; g += +2.55552042*w; b += +1.90739502*w
+
+    return (r, g, b)
+
+def _decompress(input):
+    output = bytearray(zlib.decompress(base64.b64decode(input), -zlib.MAX_WBITS))
+    for i in range(len(output)):
+        output[i] = (output[i-1] if ((i & 63) != 0) else 127) + (output[i] - 127)
+    for i in range(4161): output.append(0)
+    return output
+_lut = _decompress("eraefafdscadscae.... really long string removed for brevity")
+
+# shaders\README.md
+## GLSL Shader
+```glsl
+#ifdef GL_ES
+precision highp float;
+#endif
+
+// uncomment the following line if you work in linear space
+// #define MIXBOX_COLORSPACE_LINEAR
+
+uniform sampler2D mixbox_lut; // bind the "mixbox_lut.png" texture here
+
+#include "mixbox.glsl" // paste the contents of mixbox.glsl here
+
+void main(void)
+{
+    vec3 rgb1 = vec3(0, 0.129, 0.522); // blue
+    vec3 rgb2 = vec3(0.988, 0.827, 0); // yellow
+    float t = 0.5;                     // mixing ratio
+
+    vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+
+    gl_FragColor = vec4(rgb, 1.0);
+}
+```
+```glsl
+vec3 mix_three(vec3 rgb1, vec3 rgb2, vec3 rgb3)
+{
+    mixbox_latent z1 = mixbox_rgb_to_latent(rgb1);
+    mixbox_latent z2 = mixbox_rgb_to_latent(rgb2);
+    mixbox_latent z3 = mixbox_rgb_to_latent(rgb3);
+
+    // mix together 30% of rgb1, 60% of rgb2, and 10% of rgb3
+    mixbox_latent z_mix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+
+    vec3 rgb_mix = mixbox_latent_to_rgb(z_mix);
+
+    return rgb_mix;
+}
+```
+
+## HLSL Shader
+```hlsl
+// uncomment the following line if you work in linear space
+// #define MIXBOX_COLORSPACE_LINEAR
+
+Texture2D MixboxLUT; // bind the "mixbox_lut.png" texture here
+SamplerState MixboxSampler; // FILTER_MIN_MAG_LINEAR_MIP_POINT
+
+#define MIXBOX_LUT(UV) MixboxLUT.SampleLevel(MixboxSampler, UV, 0)
+
+#include "mixbox.hlsl"
+
+float4 PSMain() : SV_Target
+{
+    float3 rgb1 = float3(0, 0.129, 0.522); // blue
+    float3 rgb2 = float3(0.988, 0.827, 0); // yellow
+    float t = 0.5;                         // mixing ratio
+
+    float3 rgb_mix = MixboxLerp(rgb1, rgb2, t);
+
+    return float4(rgb_mix, 1.0);
+}
+```
+```hlsl
+float3 MixThree(float3 rgb1, float3 rgb2, float3 rgb3)
+{
+    MixboxLatent z1 = MixboxRGBToLatent(rgb1);
+    MixboxLatent z2 = MixboxRGBToLatent(rgb2);
+    MixboxLatent z3 = MixboxRGBToLatent(rgb3);
+
+    // mix together 30% of rgb1, 60% of rgb2, and 10% of rgb3
+    MixboxLatent zMix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+
+    float3 rgbMix = MixboxLatentToRGB(zMix);
+
+    return rgbMix;
+}
+```
+
+## Metal Shader
+```metal
+#include <metal_stdlib>
+using namespace metal;
+
+// uncomment the following line if you work in linear space
+// #define MIXBOX_COLORSPACE_LINEAR
+
+#include "mixbox.metal"
+
+fragment float4 // load "mixbox_lut.png" into texture 0
+fragment_main(texture2d<float> mixbox_lut [[texture(0)]])
+{
+    float3 rgb1 = float3(0, 0.129, 0.522); // blue
+    float3 rgb2 = float3(0.988, 0.827, 0); // yellow
+
+    float t = 0.5; // mixing ratio
+
+    float3 rgb_mix = mixbox_lerp(mixbox_lut, rgb1, rgb2, t);
+
+    return float4(rgb_mix, 1.0);
+}
+```
+```metal
+float3 mix_three(texture2d<float> mixbox_lut,
+                 float3 rgb1, float3 rgb2, float3 rgb3)
+{
+    mixbox_latent z1 = mixbox_rgb_to_latent(mixbox_lut, rgb1);
+    mixbox_latent z2 = mixbox_rgb_to_latent(mixbox_lut, rgb2);
+    mixbox_latent z3 = mixbox_rgb_to_latent(mixbox_lut, rgb3);
+
+    // mix together 30% of rgb1, 60% of rgb2, and 10% of rgb3
+    mixbox_latent z_mix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+
+    float3 rgb_mix = mixbox_latent_to_rgb(z_mix);
+
+    return rgb_mix;
+}
+```
+
+## OSL Shader
+```c
+#include "mixbox.osl"
+
+shader mix(
+    color rgb1 = color(0.0, 0.015, 0.235), // blue
+    color rgb2 = color(0.973, 0.651, 0.0), // yellow
+    float t = 0.5,                         // mixing ratio
+    output color rgb_mix = 0
+  )
+{
+    rgb_mix = mixbox_lerp(rgb1, rgb2, t);
+}
+```
+```c
+color mix_three(color rgb1, color rgb2, color rgb3)
+{
+    mixbox_latent z1 = mixbox_rgb_to_latent(rgb1);
+    mixbox_latent z2 = mixbox_rgb_to_latent(rgb2);
+    mixbox_latent z3 = mixbox_rgb_to_latent(rgb3);
+
+    // mix together 30% of rgb1, 60% of rgb2, and 10% of rgb3
+    mixbox_latent z_mix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+
+    color rgb_mix = mixbox_latent_to_rgb(z_mix);
+
+    return rgb_mix;
+}
+```
+
+## Pigment Colors
+| Pigment |  | RGB | Float RGB | Linear RGB |
+| --- | --- |:----:|:----:|:----:|
+| Cadmium Yellow | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_yellow.png"/> | 254, 236, 0  | 0.996, 0.925, 0.0 | 0.991, 0.839, 0.0 |
+| Hansa Yellow | <img src="https://scrtwpns.com/mixbox/pigments/hansa_yellow.png"/> | 252, 211, 0  | 0.988, 0.827, 0.0 | 0.973, 0.651, 0.0 |
+| Cadmium Orange | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_orange.png"/> | 255, 105, 0  | 1.0, 0.412, 0.0 | 1.0, 0.141, 0.0 |
+| Cadmium Red | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_red.png"/> | 255, 39, 2  | 1.0, 0.153, 0.008 | 1.0, 0.02, 0.001 |
+| Quinacridone Magenta | <img src="https://scrtwpns.com/mixbox/pigments/quinacridone_magenta.png"/> | 128, 2, 46  | 0.502, 0.008, 0.18 | 0.216, 0.001, 0.027 |
+| Cobalt Violet | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_violet.png"/> | 78, 0, 66  | 0.306, 0.0, 0.259 | 0.076, 0.0, 0.054 |
+| Ultramarine Blue | <img src="https://scrtwpns.com/mixbox/pigments/ultramarine_blue.png"/> | 25, 0, 89  | 0.098, 0.0, 0.349 | 0.01, 0.0, 0.1 |
+| Cobalt Blue | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_blue.png"/> | 0, 33, 133  | 0.0, 0.129, 0.522 | 0.0, 0.015, 0.235 |
+| Phthalo Blue | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_blue.png"/> | 13, 27, 68  | 0.051, 0.106, 0.267 | 0.004, 0.011, 0.058 |
+| Phthalo Green | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_green.png"/> | 0, 60, 50  | 0.0, 0.235, 0.196 | 0.0, 0.045, 0.032 |
+| Permanent Green | <img src="https://scrtwpns.com/mixbox/pigments/permanent_green.png"/> | 7, 109, 22  | 0.027, 0.427, 0.086 | 0.002, 0.153, 0.008 |
+| Sap Green | <img src="https://scrtwpns.com/mixbox/pigments/sap_green.png"/> | 107, 148, 4  | 0.42, 0.58, 0.016 | 0.147, 0.296, 0.001 |
+| Burnt Sienna | <img src="https://scrtwpns.com/mixbox/pigments/burnt_sienna.png"/> | 123, 72, 0  | 0.482, 0.282, 0.0 | 0.198, 0.065, 0.0 |
+
+## License
+Copyright (c) 2022, Secret Weapons. All rights reserved.<br>
+Mixbox is provided under the CC BY-NC 4.0 license for non-commercial use only.<br>
+If you want to obtain commercial license, please contact: mixbox@scrtwpns.com
+
+# shaders\mixbox.glsl
+// ==========================================================
+//  MIXBOX 2.0 (c) 2022 Secret Weapons. All rights reserved.
+//  License: Creative Commons Attribution-NonCommercial 4.0
+//  Authors: Sarka Sochorova and Ondrej Jamriska
+// ==========================================================
+//
+//   BASIC USAGE
+//
+//      vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+//
+//   MULTI-COLOR MIXING
+//
+//      mixbox_latent z1 = mixbox_rgb_to_latent(rgb1);
+//      mixbox_latent z2 = mixbox_rgb_to_latent(rgb2);
+//      mixbox_latent z3 = mixbox_rgb_to_latent(rgb3);
+//
+//      // mix 30% of rgb1, 60% of rgb2, and 10% of rgb3
+//      mixbox_latent z_mix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+//
+//      vec3 rgb_mix = mixbox_latent_to_rgb(z_mix);
+//
+//   PIGMENT COLORS
+//
+//      Cadmium Yellow              0.996, 0.925, 0.000
+//      Hansa Yellow                0.988, 0.827, 0.000
+//      Cadmium Orange              1.000, 0.412, 0.000
+//      Cadmium Red                 1.000, 0.153, 0.008
+//      Quinacridone Magenta        0.502, 0.008, 0.180
+//      Cobalt Violet               0.306, 0.000, 0.259
+//      Ultramarine Blue            0.098, 0.000, 0.349
+//      Cobalt Blue                 0.000, 0.129, 0.522
+//      Phthalo Blue                0.051, 0.106, 0.267
+//      Phthalo Green               0.000, 0.235, 0.196
+//      Permanent Green             0.027, 0.427, 0.086
+//      Sap Green                   0.420, 0.580, 0.016
+//      Burnt Sienna                0.482, 0.282, 0.000
+//
+//   LICENSING
+//
+//      If you want to obtain commercial license, please
+//      contact us at: mixbox@scrtwpns.com
+//
+
+#ifndef MIXBOX_INCLUDED
+#define MIXBOX_INCLUDED
+
+#ifndef MIXBOX_LUT
+  #if __VERSION__ <= 120
+    #define MIXBOX_LUT(UV) texture2D(mixbox_lut, UV)
+  #else
+    #define MIXBOX_LUT(UV) textureLod(mixbox_lut, UV, 0.0)
+  #endif
+#endif
+
+#define mixbox_latent mat3
+
+vec3 mixbox_eval_polynomial(vec3 c)
+{
+  float c0 = c[0];
+  float c1 = c[1];
+  float c2 = c[2];
+  float c3 = 1.0 - (c0 + c1 + c2);
+
+  float c00 = c0 * c0;
+  float c11 = c1 * c1;
+  float c22 = c2 * c2;
+  float c01 = c0 * c1;
+  float c02 = c0 * c2;
+  float c12 = c1 * c2;
+  float c33 = c3 * c3;
+
+  return (c0*c00) * vec3(+0.07717053, +0.02826978, +0.24832992) +
+         (c1*c11) * vec3(+0.95912302, +0.80256528, +0.03561839) +
+         (c2*c22) * vec3(+0.74683774, +0.04868586, +0.00000000) +
+         (c3*c33) * vec3(+0.99518138, +0.99978149, +0.99704802) +
+         (c00*c1) * vec3(+0.04819146, +0.83363781, +0.32515377) +
+         (c01*c1) * vec3(-0.68146950, +1.46107803, +1.06980936) +
+         (c00*c2) * vec3(+0.27058419, -0.15324870, +1.98735057) +
+         (c02*c2) * vec3(+0.80478189, +0.67093710, +0.18424500) +
+         (c00*c3) * vec3(-0.35031003, +1.37855826, +3.68865000) +
+         (c0*c33) * vec3(+1.05128046, +1.97815239, +2.82989073) +
+         (c11*c2) * vec3(+3.21607125, +0.81270228, +1.03384539) +
+         (c1*c22) * vec3(+2.78893374, +0.41565549, -0.04487295) +
+         (c11*c3) * vec3(+3.02162577, +2.55374103, +0.32766114) +
+         (c1*c33) * vec3(+2.95124691, +2.81201112, +1.17578442) +
+         (c22*c3) * vec3(+2.82677043, +0.79933038, +1.81715262) +
+         (c2*c33) * vec3(+2.99691099, +1.22593053, +1.80653661) +
+         (c01*c2) * vec3(+1.87394106, +2.05027182, -0.29835996) +
+         (c01*c3) * vec3(+2.56609566, +7.03428198, +0.62575374) +
+         (c02*c3) * vec3(+4.08329484, -1.40408358, +2.14995522) +
+         (c12*c3) * vec3(+6.00078678, +2.55552042, +1.90739502);
+}
+
+float mixbox_srgb_to_linear(float x)
+{
+  return (x >= 0.04045) ? pow((x + 0.055) / 1.055, 2.4) : x/12.92;
+}
+
+float mixbox_linear_to_srgb(float x)
+{
+  return (x >= 0.0031308) ? 1.055*pow(x, 1.0/2.4) - 0.055 : 12.92*x;
+}
+
+vec3 mixbox_srgb_to_linear(vec3 rgb)
+{
+  return vec3(mixbox_srgb_to_linear(rgb.r),
+              mixbox_srgb_to_linear(rgb.g),
+              mixbox_srgb_to_linear(rgb.b));
+}
+
+vec3 mixbox_linear_to_srgb(vec3 rgb)
+{
+  return vec3(mixbox_linear_to_srgb(rgb.r),
+              mixbox_linear_to_srgb(rgb.g),
+              mixbox_linear_to_srgb(rgb.b));
+}
+
+mixbox_latent mixbox_rgb_to_latent(vec3 rgb)
+{
+#ifdef MIXBOX_COLORSPACE_LINEAR
+  rgb = mixbox_linear_to_srgb(clamp(rgb, 0.0, 1.0));
+#else
+  rgb = clamp(rgb, 0.0, 1.0);
+#endif
+
+  float x = rgb.r * 63.0;
+  float y = rgb.g * 63.0;
+  float z = rgb.b * 63.0;
+
+  float iz = floor(z);
+
+  float x0 = mod(iz, 8.0) * 64.0;
+  float y0 = floor(iz / 8.0) * 64.0;
+
+  float x1 = mod(iz + 1.0, 8.0) * 64.0;
+  float y1 = floor((iz + 1.0) / 8.0) * 64.0;
+
+  vec2 uv0 = vec2(x0 + x + 0.5, y0 + y + 0.5) / 512.0;
+  vec2 uv1 = vec2(x1 + x + 0.5, y1 + y + 0.5) / 512.0;
+
+  if (MIXBOX_LUT(vec2(0.5, 0.5) / 512.0).b < 0.1)
+  {
+    uv0.y = 1.0 - uv0.y;
+    uv1.y = 1.0 - uv1.y;
+  }
+
+  vec3 c = mix(MIXBOX_LUT(uv0).rgb, MIXBOX_LUT(uv1).rgb, z - iz);
+
+  return mixbox_latent(c, rgb - mixbox_eval_polynomial(c), vec3(0.0));
+}
+
+vec3 mixbox_latent_to_rgb(mixbox_latent latent)
+{
+  vec3 rgb = clamp(mixbox_eval_polynomial(latent[0]) + latent[1], 0.0, 1.0);
+
+#ifdef MIXBOX_COLORSPACE_LINEAR
+  return mixbox_srgb_to_linear(rgb);
+#else
+  return rgb;
+#endif
+}
+
+vec3 mixbox_lerp(vec3 color1, vec3 color2, float t)
+{
+  return mixbox_latent_to_rgb((1.0-t)*mixbox_rgb_to_latent(color1) + t*mixbox_rgb_to_latent(color2));
+}
+
+vec4 mixbox_lerp(vec4 color1, vec4 color2, float t)
+{
+  return vec4(mixbox_lerp(color1.rgb, color2.rgb, t), mix(color1.a, color2.a, t));
+}
+
+#endif
+
+# shaders\mixbox.hlsl
+// ==========================================================
+//  MIXBOX 2.0 (c) 2022 Secret Weapons. All rights reserved.
+//  License: Creative Commons Attribution-NonCommercial 4.0
+//  Authors: Sarka Sochorova and Ondrej Jamriska
+// ==========================================================
+//
+//   BASIC USAGE
+//
+//      float3 rgb = MixboxLerp(rgb1, rgb2, t);
+//
+//   MULTI-COLOR MIXING
+//
+//      MixboxLatent z1 = MixboxRGBToLatent(rgb1);
+//      MixboxLatent z2 = MixboxRGBToLatent(rgb2);
+//      MixboxLatent z3 = MixboxRGBToLatent(rgb3);
+//
+//      // mix 30% of rgb1, 60% of rgb2, and 10% of rgb3
+//      MixboxLatent z_mix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+//
+//      float3 rgb_mix = MixboxLatentToRGB(z_mix);
+//
+//   PIGMENT COLORS
+//
+//      Cadmium Yellow              0.996, 0.925, 0.000
+//      Hansa Yellow                0.988, 0.827, 0.000
+//      Cadmium Orange              1.000, 0.412, 0.000
+//      Cadmium Red                 1.000, 0.153, 0.008
+//      Quinacridone Magenta        0.502, 0.008, 0.180
+//      Cobalt Violet               0.306, 0.000, 0.259
+//      Ultramarine Blue            0.098, 0.000, 0.349
+//      Cobalt Blue                 0.000, 0.129, 0.522
+//      Phthalo Blue                0.051, 0.106, 0.267
+//      Phthalo Green               0.000, 0.235, 0.196
+//      Permanent Green             0.027, 0.427, 0.086
+//      Sap Green                   0.420, 0.580, 0.016
+//      Burnt Sienna                0.482, 0.282, 0.000
+//
+//   LICENSING
+//
+//      If you want to obtain commercial license, please
+//      contact us at: mixbox@scrtwpns.com
+//
+
+#ifndef MIXBOX_INCLUDED
+#define MIXBOX_INCLUDED
+
+#ifndef MIXBOX_LUT
+    #define MIXBOX_LUT(UV) MixboxLUT.SampleLevel(MixboxSampler, UV, 0)
+#endif
+
+typedef float3x3 MixboxLatent;
+
+float3 MixboxEvalPolynomial(float3 c)
+{
+    float c0 = c[0];
+    float c1 = c[1];
+    float c2 = c[2];
+    float c3 = 1.0 - (c0 + c1 + c2);
+
+    float c00 = c0 * c0;
+    float c11 = c1 * c1;
+    float c22 = c2 * c2;
+    float c01 = c0 * c1;
+    float c02 = c0 * c2;
+    float c12 = c1 * c2;
+    float c33 = c3 * c3;
+
+    return (c0*c00) * float3(+0.07717053, +0.02826978, +0.24832992) +
+           (c1*c11) * float3(+0.95912302, +0.80256528, +0.03561839) +
+           (c2*c22) * float3(+0.74683774, +0.04868586, +0.00000000) +
+           (c3*c33) * float3(+0.99518138, +0.99978149, +0.99704802) +
+           (c00*c1) * float3(+0.04819146, +0.83363781, +0.32515377) +
+           (c01*c1) * float3(-0.68146950, +1.46107803, +1.06980936) +
+           (c00*c2) * float3(+0.27058419, -0.15324870, +1.98735057) +
+           (c02*c2) * float3(+0.80478189, +0.67093710, +0.18424500) +
+           (c00*c3) * float3(-0.35031003, +1.37855826, +3.68865000) +
+           (c0*c33) * float3(+1.05128046, +1.97815239, +2.82989073) +
+           (c11*c2) * float3(+3.21607125, +0.81270228, +1.03384539) +
+           (c1*c22) * float3(+2.78893374, +0.41565549, -0.04487295) +
+           (c11*c3) * float3(+3.02162577, +2.55374103, +0.32766114) +
+           (c1*c33) * float3(+2.95124691, +2.81201112, +1.17578442) +
+           (c22*c3) * float3(+2.82677043, +0.79933038, +1.81715262) +
+           (c2*c33) * float3(+2.99691099, +1.22593053, +1.80653661) +
+           (c01*c2) * float3(+1.87394106, +2.05027182, -0.29835996) +
+           (c01*c3) * float3(+2.56609566, +7.03428198, +0.62575374) +
+           (c02*c3) * float3(+4.08329484, -1.40408358, +2.14995522) +
+           (c12*c3) * float3(+6.00078678, +2.55552042, +1.90739502);
+}
+
+float3 MixboxSRGBToLinear(float3 rgb)
+{
+    return (rgb >= 0.04045) ? pow((abs(rgb) + 0.055) / 1.055, 2.4) : rgb/12.92;
+}
+
+float3 MixboxLinearToSRGB(float3 rgb)
+{
+    return (rgb >= 0.0031308) ? 1.055*pow(abs(rgb), 1.0/2.4) - 0.055 : 12.92*rgb;
+}
+
+MixboxLatent MixboxRGBToLatent(float3 rgb)
+{
+#ifdef MIXBOX_COLORSPACE_LINEAR
+    rgb = MixboxLinearToSRGB(saturate(rgb));
+#else
+    rgb = saturate(rgb);
+#endif
+
+    float x = rgb.r * 63.0;
+    float y = rgb.g * 63.0;
+    float z = rgb.b * 63.0;
+
+    float iz = floor(z);
+
+    float x0 = fmod(iz, 8.0) * 64.0;
+    float y0 = floor(iz / 8.0) * 64.0;
+
+    float x1 = fmod(iz + 1.0, 8.0) * 64.0;
+    float y1 = floor((iz + 1.0) / 8.0) * 64.0;
+
+    float2 uv0 = float2(x0 + x + 0.5, 512.0 - (y0 + y + 0.5)) / 512.0;
+    float2 uv1 = float2(x1 + x + 0.5, 512.0 - (y1 + y + 0.5)) / 512.0;
+
+    if (MIXBOX_LUT(float2(0.5, 0.5) / 512.0).b > 0.1)
+    {
+        uv0.y = 1.0 - uv0.y;
+        uv1.y = 1.0 - uv1.y;
+    }
+
+    float3 c = lerp(MIXBOX_LUT(uv0).rgb, MIXBOX_LUT(uv1).rgb, z - iz);
+
+    return MixboxLatent(c, rgb - MixboxEvalPolynomial(c), 0.0, 0.0, 0.0);
+}
+
+float3 MixboxLatentToRGB(MixboxLatent latent)
+{
+    float3 rgb = saturate(MixboxEvalPolynomial(latent[0]) + latent[1]);
+
+#ifdef MIXBOX_COLORSPACE_LINEAR
+    return MixboxSRGBToLinear(rgb);
+#else
+    return rgb;
+#endif
+}
+
+float3 MixboxLerp(float3 color1, float3 color2, float t)
+{
+    return MixboxLatentToRGB((1.0-t)*MixboxRGBToLatent(color1) + t*MixboxRGBToLatent(color2));
+}
+
+float4 MixboxLerp(float4 color1, float4 color2, float t)
+{
+    return float4(MixboxLerp(color1.rgb, color2.rgb, t), lerp(color1.a, color2.a, t));
+}
+
+#endif
+
+# shaders\mixbox.metal
+// ==========================================================
+//  MIXBOX 2.0 (c) 2022 Secret Weapons. All rights reserved. 
+//  License: Creative Commons Attribution-NonCommercial 4.0  
+//  Authors: Sarka Sochorova and Ondrej Jamriska             
+// ==========================================================
+//
+//   BASIC USAGE
+//
+//      float3 rgb = mixbox_lerp(lut, rgb1, rgb2, t);
+// 
+//   MULTI-COLOR MIXING
+//
+//      mixbox_latent z1 = mixbox_rgb_to_latent(lut, rgb1);
+//      mixbox_latent z2 = mixbox_rgb_to_latent(lut, rgb2);
+//      mixbox_latent z3 = mixbox_rgb_to_latent(lut, rgb3);
+// 
+//      // mix 30% of rgb1, 60% of rgb2, and 10% of rgb3
+//      mixbox_latent z_mix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+// 
+//      float3 rgb_mix = mixbox_latent_to_rgb(z_mix);
+// 
+//   PIGMENT COLORS
+//
+//      Cadmium Yellow              0.996, 0.925, 0.000
+//      Hansa Yellow                0.988, 0.827, 0.000
+//      Cadmium Orange              1.000, 0.412, 0.000
+//      Cadmium Red                 1.000, 0.153, 0.008
+//      Quinacridone Magenta        0.502, 0.008, 0.180
+//      Cobalt Violet               0.306, 0.000, 0.259
+//      Ultramarine Blue            0.098, 0.000, 0.349
+//      Cobalt Blue                 0.000, 0.129, 0.522
+//      Phthalo Blue                0.051, 0.106, 0.267
+//      Phthalo Green               0.000, 0.235, 0.196
+//      Permanent Green             0.027, 0.427, 0.086
+//      Sap Green                   0.420, 0.580, 0.016
+//      Burnt Sienna                0.482, 0.282, 0.000
+// 
+//   LICENSING
+//
+//      If you want to obtain commercial license, please
+//      contact us at: mixbox@scrtwpns.com
+// 
+
+#ifndef MIXBOX_INCLUDED
+#define MIXBOX_INCLUDED
+
+#include <metal_stdlib>
+
+typedef metal::float3x3 mixbox_latent;
+
+inline float3 mixbox_eval_polynomial(float3 c)
+{
+  float c0 = c[0];
+  float c1 = c[1];
+  float c2 = c[2];
+  float c3 = 1.0 - (c0 + c1 + c2);
+
+  float c00 = c0 * c0;
+  float c11 = c1 * c1;
+  float c22 = c2 * c2;
+  float c01 = c0 * c1;
+  float c02 = c0 * c2;
+  float c12 = c1 * c2;
+  float c33 = c3 * c3;
+
+  return (c0*c00) * float3(+0.07717053, +0.02826978, +0.24832992) +
+         (c1*c11) * float3(+0.95912302, +0.80256528, +0.03561839) +
+         (c2*c22) * float3(+0.74683774, +0.04868586, +0.00000000) +
+         (c3*c33) * float3(+0.99518138, +0.99978149, +0.99704802) +
+         (c00*c1) * float3(+0.04819146, +0.83363781, +0.32515377) +
+         (c01*c1) * float3(-0.68146950, +1.46107803, +1.06980936) +
+         (c00*c2) * float3(+0.27058419, -0.15324870, +1.98735057) +
+         (c02*c2) * float3(+0.80478189, +0.67093710, +0.18424500) +
+         (c00*c3) * float3(-0.35031003, +1.37855826, +3.68865000) +
+         (c0*c33) * float3(+1.05128046, +1.97815239, +2.82989073) +
+         (c11*c2) * float3(+3.21607125, +0.81270228, +1.03384539) +
+         (c1*c22) * float3(+2.78893374, +0.41565549, -0.04487295) +
+         (c11*c3) * float3(+3.02162577, +2.55374103, +0.32766114) +
+         (c1*c33) * float3(+2.95124691, +2.81201112, +1.17578442) +
+         (c22*c3) * float3(+2.82677043, +0.79933038, +1.81715262) +
+         (c2*c33) * float3(+2.99691099, +1.22593053, +1.80653661) +
+         (c01*c2) * float3(+1.87394106, +2.05027182, -0.29835996) +
+         (c01*c3) * float3(+2.56609566, +7.03428198, +0.62575374) +
+         (c02*c3) * float3(+4.08329484, -1.40408358, +2.14995522) +
+         (c12*c3) * float3(+6.00078678, +2.55552042, +1.90739502);
+}
+
+inline float mixbox_srgb_to_linear(float x)
+{
+  return (x >= 0.04045) ? metal::pow((x + 0.055) / 1.055, 2.4) : x/12.92;
+}
+
+inline float mixbox_linear_to_srgb(float x)
+{
+  return (x >= 0.0031308) ? 1.055*metal::pow(x, 1.0/2.4) - 0.055 : 12.92*x;
+}
+
+inline float3 mixbox_srgb_to_linear(float3 rgb)
+{
+  return float3(mixbox_srgb_to_linear(rgb.r),
+                mixbox_srgb_to_linear(rgb.g),
+                mixbox_srgb_to_linear(rgb.b));
+}
+
+inline float3 mixbox_linear_to_srgb(float3 rgb)
+{
+  return float3(mixbox_linear_to_srgb(rgb.r),
+                mixbox_linear_to_srgb(rgb.g),
+                mixbox_linear_to_srgb(rgb.b));
+}
+
+inline mixbox_latent mixbox_rgb_to_latent(metal::texture2d<float> mixbox_lut, float3 rgb)
+{
+#ifdef MIXBOX_COLORSPACE_LINEAR
+  rgb = mixbox_linear_to_srgb(metal::saturate(rgb));
+#else
+  rgb = metal::saturate(rgb);
+#endif
+
+  float x = rgb.r * 63.0;
+  float y = rgb.g * 63.0;
+  float z = rgb.b * 63.0;
+
+  float iz = metal::floor(z);
+
+  float x0 = metal::fmod(iz, 8.0) * 64.0;
+  float y0 = metal::floor(iz / 8.0) * 64.0;
+
+  float x1 = metal::fmod(iz + 1.0, 8.0) * 64.0;
+  float y1 = metal::floor((iz + 1.0) / 8.0) * 64.0;
+
+  float2 uv0 = float2(x0 + x + 0.5, y0 + y + 0.5) / 512.0;
+  float2 uv1 = float2(x1 + x + 0.5, y1 + y + 0.5) / 512.0;
+
+  constexpr metal::sampler lut_sampler(metal::mag_filter::linear, metal::min_filter::linear, metal::mip_filter::none);
+
+  if (mixbox_lut.sample(lut_sampler, float2(0.5, 0.5) / 512.0).b < 0.1)
+  {
+    uv0.y = 1.0 - uv0.y;
+    uv1.y = 1.0 - uv1.y;
+  }
+
+  float3 c = metal::mix(mixbox_lut.sample(lut_sampler, uv0).rgb, mixbox_lut.sample(lut_sampler, uv1).rgb, z - iz);
+
+  return mixbox_latent(c, rgb - mixbox_eval_polynomial(c), float3(0.0, 0.0, 0.0));
+}
+
+inline float3 mixbox_latent_to_rgb(mixbox_latent latent)
+{
+  float3 rgb = metal::saturate(mixbox_eval_polynomial(latent[0]) + latent[1]);
+
+#ifdef MIXBOX_COLORSPACE_LINEAR
+  return mixbox_srgb_to_linear(rgb);
+#else
+  return rgb;
+#endif
+}
+
+inline float3 mixbox_lerp(metal::texture2d<float> mixbox_lut, float3 color1, float3 color2, float t)
+{
+  return mixbox_latent_to_rgb((1.0-t)*mixbox_rgb_to_latent(mixbox_lut, color1) + t*mixbox_rgb_to_latent(mixbox_lut, color2));
+}
+
+inline float4 mixbox_lerp(metal::texture2d<float> mixbox_lut, float4 color1, float4 color2, float t)
+{
+  return float4(mixbox_lerp(mixbox_lut, color1.rgb, color2.rgb, t), metal::mix(color1.a, color2.a, t));
+}
+
+#endif
+
+# shaders\mixbox.osl
+// ==========================================================
+//  MIXBOX 2.0 (c) 2022 Secret Weapons. All rights reserved. 
+//  License: Creative Commons Attribution-NonCommercial 4.0  
+//  Authors: Sarka Sochorova and Ondrej Jamriska             
+// ==========================================================
+//
+//   BASIC USAGE
+//
+//      color rgb = mixbox_lerp(rgb1, rgb2, t);
+// 
+//   MULTI-COLOR MIXING
+//
+//      mixbox_latent z1 = mixbox_rgb_to_latent(rgb1);
+//      mixbox_latent z2 = mixbox_rgb_to_latent(rgb2);
+//      mixbox_latent z3 = mixbox_rgb_to_latent(rgb3);
+// 
+//      // mix 30% of rgb1, 60% of rgb2, and 10% of rgb3
+//      mixbox_latent z_mix = 0.3*z1 + 0.6*z2 + 0.1*z3;
+// 
+//      color rgb_mix = mixbox_latent_to_rgb(z_mix);
+// 
+//   PIGMENT COLORS
+//
+// 
+//      Cadmium Yellow              0.991, 0.839, 0.000
+//      Hansa Yellow                0.973, 0.651, 0.000
+//      Cadmium Orange              1.000, 0.141, 0.000
+//      Cadmium Red                 1.000, 0.020, 0.001
+//      Quinacridone Magenta        0.216, 0.001, 0.027
+//      Cobalt Violet               0.076, 0.000, 0.054
+//      Ultramarine Blue            0.010, 0.000, 0.100
+//      Cobalt Blue                 0.000, 0.015, 0.235
+//      Phthalo Blue                0.004, 0.011, 0.058
+//      Phthalo Green               0.000, 0.045, 0.032
+//      Permanent Green             0.002, 0.153, 0.008
+//      Sap Green                   0.147, 0.296, 0.001
+//      Burnt Sienna                0.198, 0.065, 0.000
+// 
+//   LICENSING
+//
+//      If you want to obtain commercial license, please
+//      contact us at: mixbox@scrtwpns.com
+// 
+
+#ifndef MIXBOX_INCLUDED
+#define MIXBOX_INCLUDED
+
+struct mixbox_latent
+{
+  vector c;
+  vector r;
+};
+
+mixbox_latent __operator__neg__(mixbox_latent a)
+{
+  return mixbox_latent(-a.c, -a.r);
+}
+
+mixbox_latent __operator__add__(mixbox_latent a, mixbox_latent b)
+{
+  return mixbox_latent(a.c + b.c, a.r + b.r);
+}
+
+mixbox_latent __operator__sub__(mixbox_latent a, mixbox_latent b)
+{
+  return mixbox_latent(a.c - b.c, a.r - b.r);
+}
+
+mixbox_latent __operator__mul__(float a, mixbox_latent b)
+{
+  return mixbox_latent(a * b.c, a * b.r);
+}
+
+mixbox_latent __operator__mul__(mixbox_latent a, float b)
+{
+  return mixbox_latent(a.c * b, a.r * b);
+}
+
+mixbox_latent __operator__div__(mixbox_latent a, float b)
+{
+  return mixbox_latent(a.c / b, a.r / b);
+}
+
+color mixbox_eval_polynomial(vector c)
+{
+  float c0 = c[0];
+  float c1 = c[1];
+  float c2 = c[2];
+  float c3 = 1.0 - (c0 + c1 + c2);
+
+  float c00 = c0 * c0;
+  float c11 = c1 * c1;
+  float c22 = c2 * c2;
+  float c01 = c0 * c1;
+  float c02 = c0 * c2;
+  float c12 = c1 * c2;
+  float c33 = c3 * c3;
+
+  return (c0*c00) * vector(+0.07717053, +0.02826978, +0.24832992) +
+         (c1*c11) * vector(+0.95912302, +0.80256528, +0.03561839) +
+         (c2*c22) * vector(+0.74683774, +0.04868586, +0.00000000) +
+         (c3*c33) * vector(+0.99518138, +0.99978149, +0.99704802) +
+         (c00*c1) * vector(+0.04819146, +0.83363781, +0.32515377) +
+         (c01*c1) * vector(-0.68146950, +1.46107803, +1.06980936) +
+         (c00*c2) * vector(+0.27058419, -0.15324870, +1.98735057) +
+         (c02*c2) * vector(+0.80478189, +0.67093710, +0.18424500) +
+         (c00*c3) * vector(-0.35031003, +1.37855826, +3.68865000) +
+         (c0*c33) * vector(+1.05128046, +1.97815239, +2.82989073) +
+         (c11*c2) * vector(+3.21607125, +0.81270228, +1.03384539) +
+         (c1*c22) * vector(+2.78893374, +0.41565549, -0.04487295) +
+         (c11*c3) * vector(+3.02162577, +2.55374103, +0.32766114) +
+         (c1*c33) * vector(+2.95124691, +2.81201112, +1.17578442) +
+         (c22*c3) * vector(+2.82677043, +0.79933038, +1.81715262) +
+         (c2*c33) * vector(+2.99691099, +1.22593053, +1.80653661) +
+         (c01*c2) * vector(+1.87394106, +2.05027182, -0.29835996) +
+         (c01*c3) * vector(+2.56609566, +7.03428198, +0.62575374) +
+         (c02*c3) * vector(+4.08329484, -1.40408358, +2.14995522) +
+         (c12*c3) * vector(+6.00078678, +2.55552042, +1.90739502);
+}
+
+float mixbox_srgb_to_linear(float x)
+{
+  return (x >= 0.04045) ? pow((x + 0.055) / 1.055, 2.4) : x/12.92;
+}
+
+float mixbox_linear_to_srgb(float x)
+{
+  return (x >= 0.0031308) ? 1.055*pow(x, 1.0/2.4) - 0.055 : 12.92*x;
+}
+
+color mixbox_srgb_to_linear(color rgb)
+{
+  return color(mixbox_srgb_to_linear(rgb.r),
+               mixbox_srgb_to_linear(rgb.g),
+               mixbox_srgb_to_linear(rgb.b));
+}
+
+color mixbox_linear_to_srgb(color rgb)
+{
+  return color(mixbox_linear_to_srgb(rgb.r),
+               mixbox_linear_to_srgb(rgb.g),
+               mixbox_linear_to_srgb(rgb.b));
+}
+
+mixbox_latent mixbox_rgb_to_latent(color rgb)
+{
+  color _rgb = mixbox_linear_to_srgb(clamp(rgb, 0.0, 1.0));
+
+  float x = _rgb.r * 63.0;
+  float y = _rgb.g * 63.0;
+  float z = _rgb.b * 63.0;
+
+  int ix = (int)floor(x);
+  int iy = (int)floor(y);
+  int iz = (int)floor(z);
+
+  float tx = x - ix;
+  float ty = y - iy;
+  float tz = z - iz;
+
+  int lut[799075] = { 77, 73, 88, 66, 79, 88, 32, 40, 99, 41, 32, and many more ints removing for brevity} 
+
+  int xyz = (((ix + iy*64 + iz*64*64) & 0x3FFFF) * 3);
+
+  vector c = vector(0.0, 0.0, 0.0);
+
+  float w0 = (1.0-tx)*(1.0-ty)*(1.0-tz); c[0] += w0*lut[xyz+  160]; c[1] += w0*lut[xyz+  161]; c[2] += w0*lut[xyz+  162];
+  float w1 = (    tx)*(1.0-ty)*(1.0-tz); c[0] += w1*lut[xyz+  163]; c[1] += w1*lut[xyz+  164]; c[2] += w1*lut[xyz+  165];
+  float w2 = (1.0-tx)*(    ty)*(1.0-tz); c[0] += w2*lut[xyz+  352]; c[1] += w2*lut[xyz+  353]; c[2] += w2*lut[xyz+  354];
+  float w3 = (    tx)*(    ty)*(1.0-tz); c[0] += w3*lut[xyz+  355]; c[1] += w3*lut[xyz+  356]; c[2] += w3*lut[xyz+  357];
+  float w4 = (1.0-tx)*(1.0-ty)*(    tz); c[0] += w4*lut[xyz+12448]; c[1] += w4*lut[xyz+12449]; c[2] += w4*lut[xyz+12450];
+  float w5 = (    tx)*(1.0-ty)*(    tz); c[0] += w5*lut[xyz+12451]; c[1] += w5*lut[xyz+12452]; c[2] += w5*lut[xyz+12453];
+  float w6 = (1.0-tx)*(    ty)*(    tz); c[0] += w6*lut[xyz+12640]; c[1] += w6*lut[xyz+12641]; c[2] += w6*lut[xyz+12642];
+  float w7 = (    tx)*(    ty)*(    tz); c[0] += w7*lut[xyz+12643]; c[1] += w7*lut[xyz+12644]; c[2] += w7*lut[xyz+12645];
+
+  c /= 255.0;
+
+  return mixbox_latent(c, _rgb - mixbox_eval_polynomial(c));
+}
+
+color mixbox_latent_to_rgb(mixbox_latent latent)
+{
+  color rgb = clamp(mixbox_eval_polynomial(latent.c) + latent.r, 0.0, 1.0);
+
+  return mixbox_srgb_to_linear(rgb);
+}
+
+color mixbox_lerp(color color1, color color2, float t)
+{
+  return mixbox_latent_to_rgb((1.0-t)*mixbox_rgb_to_latent(color1) + t*mixbox_rgb_to_latent(color2));
+}
+
+#endif
+
+# shaders\mixbox_lut.png
+[Binary file]
+
+# webgl\README.md
+## Mixbox in WebGL
+
+```html
+<script src="https://scrtwpns.com/mixbox.js"></script>
+```
+```javascript
+import mixbox from 'https://scrtwpns.com/mixbox.esm.js'; // for ES6 module use this instead
+```
+
+```javascript
+var shader = `
+  precision highp float;
+
+  // uncomment the following line if you work in linear space
+  // #define MIXBOX_COLORSPACE_LINEAR
+
+  uniform sampler2D mixbox_lut; // bind mixbox.lutTexture(gl) here
+
+  #include "mixbox.glsl"
+
+  void main(void) {
+    vec3 rgb1 = vec3(0, 0.129, 0.522); // blue
+    vec3 rgb2 = vec3(0.988, 0.827, 0); // yellow
+    float t = 0.5;                     // mixing ratio
+
+    vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+
+    gl_FragColor = vec4(rgb, 1.0);
+  }
+`;
+
+shader = shader.replace('#include "mixbox.glsl"', mixbox.glsl());
+```
+
+```javascript
+gl.useProgram(shaderProgram);
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D, mixbox.lutTexture(gl));
+gl.uniform1i(gl.getUniformLocation(shaderProgram, "mixbox_lut"), 0);
+```
+
+## Pigment Colors
+| Pigment |  | RGB | Float RGB | Linear RGB |
+| --- | --- |:----:|:----:|:----:|
+| Cadmium Yellow | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_yellow.png"/> | 254, 236, 0  | 0.996, 0.925, 0.0 | 0.991, 0.839, 0.0 |
+| Hansa Yellow | <img src="https://scrtwpns.com/mixbox/pigments/hansa_yellow.png"/> | 252, 211, 0  | 0.988, 0.827, 0.0 | 0.973, 0.651, 0.0 |
+| Cadmium Orange | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_orange.png"/> | 255, 105, 0  | 1.0, 0.412, 0.0 | 1.0, 0.141, 0.0 |
+| Cadmium Red | <img src="https://scrtwpns.com/mixbox/pigments/cadmium_red.png"/> | 255, 39, 2  | 1.0, 0.153, 0.008 | 1.0, 0.02, 0.001 |
+| Quinacridone Magenta | <img src="https://scrtwpns.com/mixbox/pigments/quinacridone_magenta.png"/> | 128, 2, 46  | 0.502, 0.008, 0.18 | 0.216, 0.001, 0.027 |
+| Cobalt Violet | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_violet.png"/> | 78, 0, 66  | 0.306, 0.0, 0.259 | 0.076, 0.0, 0.054 |
+| Ultramarine Blue | <img src="https://scrtwpns.com/mixbox/pigments/ultramarine_blue.png"/> | 25, 0, 89  | 0.098, 0.0, 0.349 | 0.01, 0.0, 0.1 |
+| Cobalt Blue | <img src="https://scrtwpns.com/mixbox/pigments/cobalt_blue.png"/> | 0, 33, 133  | 0.0, 0.129, 0.522 | 0.0, 0.015, 0.235 |
+| Phthalo Blue | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_blue.png"/> | 13, 27, 68  | 0.051, 0.106, 0.267 | 0.004, 0.011, 0.058 |
+| Phthalo Green | <img src="https://scrtwpns.com/mixbox/pigments/phthalo_green.png"/> | 0, 60, 50  | 0.0, 0.235, 0.196 | 0.0, 0.045, 0.032 |
+| Permanent Green | <img src="https://scrtwpns.com/mixbox/pigments/permanent_green.png"/> | 7, 109, 22  | 0.027, 0.427, 0.086 | 0.002, 0.153, 0.008 |
+| Sap Green | <img src="https://scrtwpns.com/mixbox/pigments/sap_green.png"/> | 107, 148, 4  | 0.42, 0.58, 0.016 | 0.147, 0.296, 0.001 |
+| Burnt Sienna | <img src="https://scrtwpns.com/mixbox/pigments/burnt_sienna.png"/> | 123, 72, 0  | 0.482, 0.282, 0.0 | 0.198, 0.065, 0.0 |
+
+## License
+Copyright (c) 2022, Secret Weapons. All rights reserved.<br>
+Mixbox is provided under the CC BY-NC 4.0 license for non-commercial use only.<br>
+If you want to obtain commercial license, please contact: mixbox@scrtwpns.com
+
+# webgl\example.html
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    <script>
+      var canvas = document.getElementById("canvas");
+      var gl = canvas.getContext("webgl");
+
+      var vertexShader = `
+        attribute vec2 position;
+
+        void main(void) {
+          gl_Position = vec4(position, 0.0, 1.0);
+        }
+      `;
+
+      var fragmentShader = `
+        precision highp float;
+
+        uniform sampler2D mixbox_lut;
+        
+        #include "mixbox.glsl"
+
+        void main(void) {
+          vec3 rgb1 = vec3(0, 0.129, 0.522); // blue
+          vec3 rgb2 = vec3(0.988, 0.827, 0); // yellow 
+          float t = gl_FragCoord.x / 512.0;  // mixing ratio
+
+          vec3 rgb = mixbox_lerp(rgb1, rgb2, t);
+
+          gl_FragColor = vec4(rgb, 1.0);
+        }
+      `;
+
+      fragmentShader = fragmentShader.replace('#include "mixbox.glsl"', mixbox.glsl());
+
+      var shaderProgram = gl.createProgram();
+      gl.attachShader(shaderProgram, compileShader(gl, gl.VERTEX_SHADER, vertexShader));
+      gl.attachShader(shaderProgram, compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader));
+      gl.linkProgram(shaderProgram);
+
+      var vertexPosition =  gl.getAttribLocation(shaderProgram, "position");
+
+      var positions = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
+
+      var positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+      function render(now) {
+        gl.useProgram(shaderProgram);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, mixbox.lutTexture(gl));
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "mixbox_lut"), 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(vertexPosition);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        requestAnimationFrame(render);
+      }
+
+      requestAnimationFrame(render);
+
+      function compileShader(gl, type, source) {
+        var shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }        
+    </script>
+  </body>
+</html>

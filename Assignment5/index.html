@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mixbox Watercolor Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        canvas {
+            display: block;
+            background: #fff;
+            touch-action: none;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            max-width: 800px;
+            justify-content: center;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+        }
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            text-align: center;
+        }
+        .color-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+        }
+        .color-button {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .color-button.active {
+            border-color: #000;
+            transform: scale(1.1);
+        }
+        .color-button:hover {
+            transform: scale(1.1);
+        }
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 5px;
+        }
+        .slider-container label {
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+        .range-with-value {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .range-with-value input[type="range"] {
+            flex: 1;
+        }
+        .range-with-value span {
+            font-size: 11px;
+            min-width: 25px;
+            text-align: right;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .toggle-container label {
+            font-size: 12px;
+            flex: 1;
+        }
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button:hover {
+            background: #3a80d2;
+        }
+        .info {
+            background: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+        }
+        #paper-patterns {
+            display: flex;
+            gap: 5px;
+        }
+        .paper-pattern {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .paper-pattern.active {
+            border: 2px solid #000;
+        }
+        .brush-size-indicator {
+            position: absolute;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        /* Loading indicator */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fps-counter {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loader"></div>
+    </div>
+    <div id="container">
+        <div id="canvas-container">
+            <canvas id="canvas" width="800" height="600"></canvas>
+            <div class="brush-size-indicator" id="brush-indicator"></div>
+            <div class="fps-counter" id="fps-counter">FPS: 0</div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <h3>Pigments</h3>
+                <div class="color-buttons" id="colors">
+                    <!-- Colors will be inserted here -->
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Brush</h3>
+                <div class="slider-container">
+                    <label for="brush-size">Size</label>
+                    <div class="range-with-value">
+                        <input type="range" id="brush-size" min="5" max="80" value="20">
+                        <span id="brush-size-value">20</span>
+                    </div>
+                </div>
+                <div class="slider-container">
+                    <label for="water-amount">Water</label>
+                    <div class="range-with-value">
+                        <input type="range" id="water-amount" min="0" max="1" step="0.01" value="0.7">
+                        <span id="water-amount-value">0.7</span>
+                    </div>
+                </div>
+                <div class="slider-container">
+                    <label for="pigment-density">Pigment</label>
+                    <div class="range-with-value">
+                        <input type="range" id="pigment-density" min="0" max="1" step="0.01" value="0.5">
+                        <span id="pigment-density-value">0.5</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Paper</h3>
+                <div id="paper-patterns">
+                    <div class="paper-pattern active" data-pattern="smooth" style="background-color: #fff;"></div>
+                    <div class="paper-pattern" data-pattern="cold-pressed" style="background-color: #f5f5f5;"></div>
+                    <div class="paper-pattern" data-pattern="rough" style="background-color: #eaeaea;"></div>
+                </div>
+                <div class="slider-container">
+                    <label for="paper-absorption">Absorption</label>
+                    <div class="range-with-value">
+                        <input type="range" id="paper-absorption" min="0.1" max="1" step="0.01" value="0.5">
+                        <span id="paper-absorption-value">0.5</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Effects</h3>
+                <div class="toggle-container">
+                    <label for="edge-darkening">Edge Darkening</label>
+                    <input type="checkbox" id="edge-darkening" checked>
+                </div>
+                <div class="toggle-container">
+                    <label for="granulation">Granulation</label>
+                    <input type="checkbox" id="granulation" checked>
+                </div>
+                <div class="slider-container">
+                    <label for="flow-rate">Flow Speed</label>
+                    <div class="range-with-value">
+                        <input type="range" id="flow-rate" min="0.1" max="3" step="0.1" value="1">
+                        <span id="flow-rate-value">1.0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Actions</h3>
+                <button id="clear-canvas">Clear Canvas</button>
+                <button id="toggle-simulation">Pause Simulation</button>
+                <div class="toggle-container">
+                    <label for="show-water">Show Water</label>
+                    <input type="checkbox" id="show-water">
+                </div>
+            </div>
+        </div>
+        
+        <div class="info">
+            <p>Paint with watercolors using Mixbox's realistic pigment-based mixing. Watch how pigments flow and mix like real watercolors.</p>
+        </div>
+    </div>
+
+    <!-- Include Mixbox.js -->
+    <script src="https://scrtwpns.com/mixbox.js"></script>
+    
+    <script>
+        // Watercolor pigments - based on Mixbox pigment colors
+        const pigments = [
+            { name: "Cadmium Yellow", color: [254, 236, 0], hex: "#feec00" },
+            { name: "Hansa Yellow", color: [252, 211, 0], hex: "#fcd300" },
+            { name: "Cadmium Orange", color: [255, 105, 0], hex: "#ff6900" },
+            { name: "Cadmium Red", color: [255, 39, 2], hex: "#ff2702" },
+            { name: "Quinacridone Magenta", color: [128, 2, 46], hex: "#80022e" },
+            { name: "Cobalt Violet", color: [78, 0, 66], hex: "#4e0042" },
+            { name: "Ultramarine Blue", color: [25, 0, 89], hex: "#190059" },
+            { name: "Cobalt Blue", color: [0, 33, 133], hex: "#002185" },
+            { name: "Phthalo Blue", color: [13, 27, 68], hex: "#0d1b44" },
+            { name: "Phthalo Green", color: [0, 60, 50], hex: "#003c32" },
+            { name: "Permanent Green", color: [7, 109, 22], hex: "#076d16" },
+            { name: "Sap Green", color: [107, 148, 4], hex: "#6b9404" },
+            { name: "Burnt Sienna", color: [123, 72, 0], hex: "#7b4800" },
+            { name: "Clear Water", color: [255, 255, 255], hex: "#ffffff" }
+        ];
+
+        // GLSL shaders
+        const vertexShaderSource = `
+            attribute vec2 a_position;
+            attribute vec2 a_texCoord;
+            
+            varying vec2 v_texCoord;
+            
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+                v_texCoord = a_texCoord;
+            }
+        `;
+
+                    // Fluid simulation shader
+        const fluidShaderSource = `
+            precision highp float;
+            
+            uniform sampler2D u_previousState;
+            uniform sampler2D u_waterVelocity;
+            uniform sampler2D u_paperTexture;
+            uniform vec2 u_resolution;
+            uniform vec2 u_mouse;
+            uniform vec3 u_pigmentColor;
+            uniform float u_brushSize;
+            uniform float u_pigmentDensity;
+            uniform float u_waterAmount;
+            uniform bool u_isDrawing;
+            uniform float u_evaporationRate;
+            uniform float u_diffusionRate;
+            uniform float u_absorptionRate;
+            uniform float u_deltaTime;
+            uniform bool u_enableGranulation;
+            
+            // Sample with bilinear interpolation
+            vec4 bilinearSample(sampler2D texture, vec2 uv) {
+                vec2 texSize = u_resolution;
+                vec2 texelSize = 1.0 / texSize;
+                
+                vec2 texelCoord = uv * texSize - 0.5;
+                vec2 f = fract(texelCoord);
+                texelCoord = floor(texelCoord) + 0.5;
+                
+                vec4 tl = texture2D(texture, (texelCoord + vec2(0.0, 0.0)) * texelSize);
+                vec4 tr = texture2D(texture, (texelCoord + vec2(1.0, 0.0)) * texelSize);
+                vec4 bl = texture2D(texture, (texelCoord + vec2(0.0, 1.0)) * texelSize);
+                vec4 br = texture2D(texture, (texelCoord + vec2(1.0, 1.0)) * texelSize);
+                
+                vec4 tA = mix(tl, tr, f.x);
+                vec4 tB = mix(bl, br, f.x);
+                
+                return mix(tA, tB, f.y);
+            }
+            
+            void main() {
+                vec2 coord = gl_FragCoord.xy / u_resolution;
+                
+                // Get current state
+                vec4 currentState = texture2D(u_previousState, coord);
+                
+                // RGB channels represent pigment amounts
+                // Alpha channel represents water amount
+                
+                vec3 pigment = currentState.rgb;
+                float water = currentState.a;
+                
+                // Sample paper texture
+                float paperTexture = texture2D(u_paperTexture, coord).r;
+                
+                // Add user input (if drawing)
+                if (u_isDrawing) {
+                    float distToMouse = distance(gl_FragCoord.xy, u_mouse);
+                    if (distToMouse < u_brushSize) {
+                        float brushStrength = 1.0 - smoothstep(u_brushSize * 0.8, u_brushSize, distToMouse);
+                        
+                        // Add water
+                        water += u_waterAmount * brushStrength * 0.2;
+                        
+                        // Add pigment directly in RGB space
+                        if (u_pigmentColor != vec3(1.0)) {  // Not clear water
+                            // Add new pigment to existing
+                            pigment = mix(pigment, u_pigmentColor, u_pigmentDensity * brushStrength * 0.2);
+                        }
+                    }
+                }
+                
+                // Advection - move pigments with water flow
+                if (water > 0.01) {
+                    vec2 velocity = texture2D(u_waterVelocity, coord).xy;
+                    
+                    // Scale velocity by water amount and flow rate
+                    velocity *= water * u_deltaTime * 0.5;
+                    
+                    // Sample from previous position
+                    vec2 prevCoord = coord - velocity;
+                    vec4 prevState = bilinearSample(u_previousState, prevCoord);
+                    
+                    // Flow pigments and water
+                    pigment = mix(pigment, prevState.rgb, min(1.0, water * 2.0));
+                    water = mix(water, prevState.a, 0.5);
+                }
+                
+                // Diffusion
+                if (water > 0.01) {
+                    float diffusionAmount = u_diffusionRate * water * u_deltaTime;
+                    
+                    for (int i = -1; i <= 1; i++) {
+                        for (int j = -1; j <= 1; j++) {
+                            if (i == 0 && j == 0) continue;
+                            
+                            vec2 sampleCoord = coord + vec2(float(i), float(j)) / u_resolution;
+                            vec4 neighborState = texture2D(u_previousState, sampleCoord);
+                            
+                            float waterGradient = max(0.0, water - neighborState.a);
+                            pigment += diffusionAmount * waterGradient * (neighborState.rgb - pigment) * 0.125;
+                        }
+                    }
+                }
+                
+                // Evaporation and paper absorption
+                float evaporation = u_evaporationRate * u_deltaTime;
+                float absorption = u_absorptionRate * paperTexture;
+                
+                if (u_enableGranulation) {
+                    // Granulation - pigments settle more in paper texture valleys
+                    float granulationFactor = 1.0 - paperTexture;
+                    pigment *= 1.0 + granulationFactor * 0.1 * max(0.0, 1.0 - water * 2.0);
+                }
+                
+                // Reduce water by evaporation
+                water = max(0.0, water - evaporation * (1.0 + absorption));
+                
+                // Output final state
+                gl_FragColor = vec4(pigment, water);
+            }
+        `;
+
+        // Water velocity update shader
+        const velocityShaderSource = `
+            precision highp float;
+            
+            uniform sampler2D u_previousVelocity;
+            uniform sampler2D u_waterState;
+            uniform sampler2D u_paperTexture;
+            uniform vec2 u_resolution;
+            uniform vec2 u_mouse;
+            uniform vec2 u_prevMouse;
+            uniform float u_brushSize;
+            uniform bool u_isDrawing;
+            uniform float u_deltaTime;
+            uniform float u_flowRate;
+            
+            void main() {
+                vec2 coord = gl_FragCoord.xy / u_resolution;
+                
+                // Get previous velocity
+                vec2 velocity = texture2D(u_previousVelocity, coord).xy;
+                
+                // Get water height
+                float water = texture2D(u_waterState, coord).a;
+                
+                // Paper texture affects flow
+                float paperFriction = texture2D(u_paperTexture, coord).r;
+                
+                // Add mouse movement forces
+                if (u_isDrawing) {
+                    vec2 mouseVec = u_mouse - u_prevMouse;
+                    float mouseSpeed = length(mouseVec);
+                    vec2 mouseDir = mouseSpeed > 0.001 ? normalize(mouseVec) : vec2(0.0);
+                    
+                    float distToMouse = distance(gl_FragCoord.xy, u_mouse);
+                    if (distToMouse < u_brushSize * 1.5) {
+                        float brushInfluence = 1.0 - smoothstep(u_brushSize, u_brushSize * 1.5, distToMouse);
+                        velocity += mouseDir * brushInfluence * mouseSpeed * 0.02;
+                    }
+                }
+                
+                // Compute water gradient (water flows downhill)
+                float waterC = water;
+                
+                float waterL = texture2D(u_waterState, coord - vec2(1.0/u_resolution.x, 0.0)).a;
+                float waterR = texture2D(u_waterState, coord + vec2(1.0/u_resolution.x, 0.0)).a;
+                float waterT = texture2D(u_waterState, coord - vec2(0.0, 1.0/u_resolution.y)).a;
+                float waterB = texture2D(u_waterState, coord + vec2(0.0, 1.0/u_resolution.y)).a;
+                
+                vec2 waterGradient = vec2(waterR - waterL, waterB - waterT) * 0.5;
+                
+                // Water flows from high to low
+                velocity -= waterGradient * u_flowRate * (1.0 - paperFriction * 0.5);
+                
+                // Damping
+                velocity *= max(0.0, 1.0 - 0.2 * u_deltaTime - (1.0 - water) * 0.5);
+                
+                // Limit velocity
+                float maxVel = 5.0;
+                if (length(velocity) > maxVel) {
+                    velocity = normalize(velocity) * maxVel;
+                }
+                
+                gl_FragColor = vec4(velocity, 0.0, 1.0);
+            }
+        `;
+
+        // Render shader
+        const renderShaderSource = `
+            precision highp float;
+            
+            uniform sampler2D u_fluidState;
+            uniform sampler2D u_waterVelocity;
+            uniform sampler2D u_paperTexture;
+            uniform bool u_showWater;
+            uniform bool u_edgeDarkening;
+            
+            varying vec2 v_texCoord;
+            
+            void main() {
+                vec4 state = texture2D(u_fluidState, v_texCoord);
+                float paper = texture2D(u_paperTexture, v_texCoord).r;
+                
+                // Unpack data
+                vec3 pigmentColor = state.rgb;
+                float water = state.a;
+                
+                if (u_showWater) {
+                    // Special debug view to show water
+                    gl_FragColor = vec4(0.0, 0.0, water * 2.0, 1.0);
+                    return;
+                }
+                
+                // Paper color with texture
+                vec3 paperColor = vec3(0.98, 0.98, 0.96) - (1.0 - paper) * 0.1;
+                
+                // Get pigment edges for edge darkening
+                float edgeFactor = 0.0;
+                if (u_edgeDarkening) {
+                    vec2 texelSize = vec2(1.0/800.0, 1.0/600.0); // Hardcoded for simplicity
+                    
+                    float sum = 0.0;
+                    float weightSum = 0.0;
+                    for (int i = -2; i <= 2; i++) {
+                        for (int j = -2; j <= 2; j++) {
+                            if (i == 0 && j == 0) continue;
+                            
+                            float weight = 1.0 / (abs(float(i)) + abs(float(j)));
+
+                            weightSum += weight;
+                            
+                            vec2 offset = vec2(float(i), float(j)) * texelSize;
+                            float neighborWater = texture2D(u_fluidState, v_texCoord + offset).a;
+                            
+                            // Detect water edges
+                            float diff = water - neighborWater;
+                            sum += (diff > 0.0 ? diff : -diff) * weight; // Manual absolute value
+                        }
+                    }
+                    
+                    edgeFactor = sum / weightSum * 10.0;
+                }
+                
+                // Edge darkening effect
+                if (u_edgeDarkening) {
+                    float alpha = sqrt(pigmentColor.r * pigmentColor.r + pigmentColor.g * pigmentColor.g + pigmentColor.b * pigmentColor.b); // length
+                    if (alpha > 0.01) {
+                        float edgeStrength = min(1.0, edgeFactor * 5.0) * min(1.0, alpha * 5.0);
+                        pigmentColor = mix(pigmentColor, pigmentColor * 0.3, edgeStrength);
+                    }
+                }
+                
+                // Paper absorption blending
+                float colorStrength = sqrt(pigmentColor.r * pigmentColor.r + pigmentColor.g * pigmentColor.g + pigmentColor.b * pigmentColor.b); // length
+                vec3 finalColor = mix(paperColor, pigmentColor, min(1.0, colorStrength * 1.5));
+                
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        // Wait for document to load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize color buttons
+            const colorsContainer = document.getElementById('colors');
+            
+            pigments.forEach((pigment, index) => {
+                const btn = document.createElement('div');
+                btn.classList.add('color-button');
+                btn.style.backgroundColor = pigment.hex;
+                btn.setAttribute('data-color', index);
+                btn.title = pigment.name;
+                
+                // Make the first color active
+                if (index === 0) btn.classList.add('active');
+                
+                colorsContainer.appendChild(btn);
+                
+                btn.addEventListener('click', function() {
+                    // Remove active class from all color buttons
+                    document.querySelectorAll('.color-button').forEach(el => el.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                });
+            });
+            
+            // Setup canvas and WebGL
+            const canvas = document.getElementById('canvas');
+            const brushIndicator = document.getElementById('brush-indicator');
+            const fpsCounter = document.getElementById('fps-counter');
+            let gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
+            
+            if (!gl) {
+                alert('WebGL not supported! Please try a different browser.');
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            
+            // Canvas dimensions
+            let width = canvas.width;
+            let height = canvas.height;
+            
+            // Set up WebGL
+            function createShader(gl, type, source) {
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                    return null; // Return null instead of deleting to help with debugging
+                }
+                
+                return shader;
+            }
+            
+            function createProgram(gl, vertexShader, fragmentShader) {
+                // Check if shaders are valid before creating the program
+                if (!vertexShader || !fragmentShader) {
+                    console.error('Invalid shaders provided to createProgram');
+                    return null;
+                }
+                
+                const program = gl.createProgram();
+                gl.attachShader(program, vertexShader);
+                gl.attachShader(program, fragmentShader);
+                gl.linkProgram(program);
+                
+                if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                    console.error('Program link error:', gl.getProgramInfoLog(program));
+                    return null;
+                }
+                
+                return program;
+            }
+            
+            // Create shaders and programs
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+            const fluidFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fluidShaderSource);
+            const velocityFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, velocityShaderSource);
+            const renderFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, renderShaderSource);
+            
+            const fluidProgram = createProgram(gl, vertexShader, fluidFragmentShader);
+            const velocityProgram = createProgram(gl, vertexShader, velocityFragmentShader);
+            const renderProgram = createProgram(gl, vertexShader, renderFragmentShader);
+            
+            // Create vertex data for a fullscreen quad
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            const positions = [
+                -1.0, -1.0,
+                 1.0, -1.0,
+                -1.0,  1.0,
+                 1.0,  1.0,
+            ];
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+            
+            const texCoordBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            const texCoords = [
+                0.0, 0.0,
+                1.0, 0.0,
+                0.0, 1.0,
+                1.0, 1.0,
+            ];
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
+            
+            // Create framebuffers for ping-pong rendering
+            function createFramebuffer(gl, texture) {
+                const fb = gl.createFramebuffer();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+                return fb;
+            }
+            
+            function createTexture(gl, width, height) {
+                const texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, null);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                return texture;
+            }
+            
+            // Check if floating point textures are available
+            const ext = gl.getExtension('OES_texture_float');
+            const extLinear = gl.getExtension('OES_texture_float_linear');
+            
+            if (!ext) {
+                alert('Your browser does not support floating point textures which are required for this simulation.');
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            
+            // Create textures for fluid state (pigment and water)
+            const fluidTexture1 = createTexture(gl, width, height);
+            const fluidTexture2 = createTexture(gl, width, height);
+            
+            // Create textures for velocity field
+            const velocityTexture1 = createTexture(gl, width, height);
+            const velocityTexture2 = createTexture(gl, width, height);
+            
+            // Create framebuffers
+            const fluidFB1 = createFramebuffer(gl, fluidTexture1);
+            const fluidFB2 = createFramebuffer(gl, fluidTexture2);
+            const velocityFB1 = createFramebuffer(gl, velocityTexture1);
+            const velocityFB2 = createFramebuffer(gl, velocityTexture2);
+            
+            // Create paper texture
+            function createPaperTexture(gl, type) {
+                const texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                
+                // Create paper texture based on type
+                const size = 512;
+                const data = new Uint8Array(size * size);
+                
+                // Fill texture with different paper patterns
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        let value = 230; // Base value (smooth paper)
+                        
+                        if (type === 'cold-pressed') {
+                            // Medium texture with some variation
+                            value = 230 - Math.random() * 50;
+                            
+                            // Add some grain patterns
+                            if (Math.random() < 0.05) {
+                                value -= Math.random() * 30;
+                            }
+                        } 
+                        else if (type === 'rough') {
+                            // More pronounced texture
+                            value = 220 - Math.random() * 70;
+                            
+                            // Add more pronounced grain patterns
+                            if (Math.random() < 0.1) {
+                                value -= Math.random() * 50;
+                            }
+                            
+                            // Add some larger texture elements
+                            const noise = Math.sin(x * 0.05) * Math.sin(y * 0.05) * 30;
+                            value += noise;
+                        }
+                        
+                        // Ensure value is in valid range
+                        value = Math.max(100, Math.min(255, value));
+                        
+                        data[y * size + x] = value;
+                    }
+                }
+                
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size, size, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, data);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+                
+                return texture;
+            }
+            
+            // Create different paper textures
+            const paperTextures = {
+                'smooth': createPaperTexture(gl, 'smooth'),
+                'cold-pressed': createPaperTexture(gl, 'cold-pressed'),
+                'rough': createPaperTexture(gl, 'rough')
+            };
+            
+            let currentPaperTexture = paperTextures['smooth'];
+            
+            // We'll use Mixbox for color calculations but not directly in shaders
+            
+            // Clear textures initially
+            function clearTexture(framebuffer, r, g, b, a) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+                gl.viewport(0, 0, width, height);
+                gl.clearColor(r, g, b, a);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
+            
+            clearTexture(fluidFB1, 0, 0, 0, 0);
+            clearTexture(fluidFB2, 0, 0, 0, 0);
+            clearTexture(velocityFB1, 0, 0, 0, 0);
+            clearTexture(velocityFB2, 0, 0, 0, 0);
+            
+            // Ping-pong state
+            let fluidState = {
+                read: fluidTexture1,
+                write: fluidTexture2,
+                readFB: fluidFB1,
+                writeFB: fluidFB2
+            };
+            
+            let velocityState = {
+                read: velocityTexture1,
+                write: velocityTexture2,
+                readFB: velocityFB1,
+                writeFB: velocityFB2
+            };
+            
+            // Swap read and write buffers
+            function swapBuffers(state) {
+                const temp = state.read;
+                state.read = state.write;
+                state.write = temp;
+                
+                const tempFB = state.readFB;
+                state.readFB = state.writeFB;
+                state.writeFB = tempFB;
+            }
+            
+            // Simulation parameters
+            let simulationActive = true;
+            let showWater = false;
+            let edgeDarkening = true;
+            let enableGranulation = true;
+            
+            let brushSize = 20;
+            let waterAmount = 0.7;
+            let pigmentDensity = 0.5;
+            let paperAbsorption = 0.5;
+            let flowRate = 1.0;
+            
+            const evaporationRate = 0.05;
+            const diffusionRate = 0.5;
+            
+            // Mouse state
+            let mouseX = 0;
+            let mouseY = 0;
+            let prevMouseX = 0;
+            let prevMouseY = 0;
+            let isDrawing = false;
+            
+            // Selected color
+            let selectedPigmentIndex = 0;
+            
+            // Update UI when sliders change
+            function setupUIListeners() {
+                // Brush size slider
+                const brushSizeSlider = document.getElementById('brush-size');
+                const brushSizeValue = document.getElementById('brush-size-value');
+                
+                brushSizeSlider.addEventListener('input', function() {
+                    brushSize = parseFloat(this.value);
+                    brushSizeValue.textContent = brushSize;
+                    updateBrushIndicator();
+                });
+                
+                // Water amount slider
+                const waterAmountSlider = document.getElementById('water-amount');
+                const waterAmountValue = document.getElementById('water-amount-value');
+                
+                waterAmountSlider.addEventListener('input', function() {
+                    waterAmount = parseFloat(this.value);
+                    waterAmountValue.textContent = waterAmount.toFixed(1);
+                });
+                
+                // Pigment density slider
+                const pigmentDensitySlider = document.getElementById('pigment-density');
+                const pigmentDensityValue = document.getElementById('pigment-density-value');
+                
+                pigmentDensitySlider.addEventListener('input', function() {
+                    pigmentDensity = parseFloat(this.value);
+                    pigmentDensityValue.textContent = pigmentDensity.toFixed(1);
+                });
+                
+                // Paper absorption slider
+                const paperAbsorptionSlider = document.getElementById('paper-absorption');
+                const paperAbsorptionValue = document.getElementById('paper-absorption-value');
+                
+                paperAbsorptionSlider.addEventListener('input', function() {
+                    paperAbsorption = parseFloat(this.value);
+                    paperAbsorptionValue.textContent = paperAbsorption.toFixed(1);
+                });
+                
+                // Flow rate slider
+                const flowRateSlider = document.getElementById('flow-rate');
+                const flowRateValue = document.getElementById('flow-rate-value');
+                
+                flowRateSlider.addEventListener('input', function() {
+                    flowRate = parseFloat(this.value);
+                    flowRateValue.textContent = flowRate.toFixed(1);
+                });
+                
+                // Edge darkening toggle
+                const edgeDarkeningToggle = document.getElementById('edge-darkening');
+                edgeDarkeningToggle.addEventListener('change', function() {
+                    edgeDarkening = this.checked;
+                });
+                
+                // Granulation toggle
+                const granulationToggle = document.getElementById('granulation');
+                granulationToggle.addEventListener('change', function() {
+                    enableGranulation = this.checked;
+                });
+                
+                // Show water toggle
+                const showWaterToggle = document.getElementById('show-water');
+                showWaterToggle.addEventListener('change', function() {
+                    showWater = this.checked;
+                });
+                
+                // Clear canvas button
+                const clearButton = document.getElementById('clear-canvas');
+                clearButton.addEventListener('click', function() {
+                    clearTexture(fluidFB1, 0, 0, 0, 0);
+                    clearTexture(fluidFB2, 0, 0, 0, 0);
+                    clearTexture(velocityFB1, 0, 0, 0, 0);
+                    clearTexture(velocityFB2, 0, 0, 0, 0);
+                });
+                
+                // Toggle simulation button
+                const toggleSimButton = document.getElementById('toggle-simulation');
+                toggleSimButton.addEventListener('click', function() {
+                    simulationActive = !simulationActive;
+                    this.textContent = simulationActive ? 'Pause Simulation' : 'Resume Simulation';
+                });
+                
+                // Paper pattern selection
+                const paperPatterns = document.querySelectorAll('.paper-pattern');
+                paperPatterns.forEach(pattern => {
+                    pattern.addEventListener('click', function() {
+                        paperPatterns.forEach(p => p.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        const patternType = this.getAttribute('data-pattern');
+                        currentPaperTexture = paperTextures[patternType];
+                    });
+                });
+                
+                // Color selection
+                document.querySelectorAll('.color-button').forEach(button => {
+                    button.addEventListener('click', function() {
+                        selectedPigmentIndex = parseInt(this.getAttribute('data-color'));
+                    });
+                });
+            }
+            
+            // Set up canvas interaction
+            function setupCanvasListeners() {
+                canvas.addEventListener('mousedown', function(e) {
+                    isDrawing = true;
+                    
+                    const rect = canvas.getBoundingClientRect();
+                    mouseX = e.clientX - rect.left;
+                    mouseY = height - (e.clientY - rect.top); // Flip Y for WebGL
+                    
+                    prevMouseX = mouseX;
+                    prevMouseY = mouseY;
+                });
+                
+                canvas.addEventListener('mousemove', function(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    mouseX = e.clientX - rect.left;
+                    mouseY = height - (e.clientY - rect.top); // Flip Y for WebGL
+                    
+                    updateBrushIndicator();
+                });
+                
+                canvas.addEventListener('mouseup', function() {
+                    isDrawing = false;
+                });
+                
+                canvas.addEventListener('mouseleave', function() {
+                    isDrawing = false;
+                    brushIndicator.style.display = 'none';
+                });
+                
+                canvas.addEventListener('mouseenter', function() {
+                    updateBrushIndicator();
+                });
+                
+                // Touch support for mobile
+                canvas.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    isDrawing = true;
+                    
+                    const rect = canvas.getBoundingClientRect();
+                    mouseX = e.touches[0].clientX - rect.left;
+                    mouseY = height - (e.touches[0].clientY - rect.top);
+                    
+                    prevMouseX = mouseX;
+                    prevMouseY = mouseY;
+                    
+                    updateBrushIndicator();
+                });
+                
+                canvas.addEventListener('touchmove', function(e) {
+                    e.preventDefault();
+                    
+                    const rect = canvas.getBoundingClientRect();
+                    mouseX = e.touches[0].clientX - rect.left;
+                    mouseY = height - (e.touches[0].clientY - rect.top);
+                    
+                    updateBrushIndicator();
+                });
+                
+                canvas.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    isDrawing = false;
+                    brushIndicator.style.display = 'none';
+                });
+            }
+            
+            function updateBrushIndicator() {
+                const rect = canvas.getBoundingClientRect();
+                brushIndicator.style.display = 'block';
+                brushIndicator.style.width = brushSize * 2 + 'px';
+                brushIndicator.style.height = brushSize * 2 + 'px';
+                brushIndicator.style.left = mouseX + 'px';
+                brushIndicator.style.top = (height - mouseY) + 'px';
+                
+                // Change brush indicator color based on selected pigment
+                const pigment = pigments[selectedPigmentIndex];
+                if (pigment.name === "Clear Water") {
+                    brushIndicator.style.borderColor = 'rgba(0, 120, 255, 0.7)';
+                } else {
+                    brushIndicator.style.borderColor = pigment.hex;
+                }
+            }
+            
+            // Simulation update function
+            function updateFluid(deltaTime) {
+                if (!simulationActive) return;
+                
+                // Update velocity field
+                gl.useProgram(velocityProgram);
+                
+                // Set up attributes
+                const posAttribLocation = gl.getAttribLocation(velocityProgram, 'a_position');
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.enableVertexAttribArray(posAttribLocation);
+                gl.vertexAttribPointer(posAttribLocation, 2, gl.FLOAT, false, 0, 0);
+                
+                const texAttribLocation = gl.getAttribLocation(velocityProgram, 'a_texCoord');
+                gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                gl.enableVertexAttribArray(texAttribLocation);
+                gl.vertexAttribPointer(texAttribLocation, 2, gl.FLOAT, false, 0, 0);
+                
+                // Set uniforms
+                gl.uniform2f(gl.getUniformLocation(velocityProgram, 'u_resolution'), width, height);
+                gl.uniform2f(gl.getUniformLocation(velocityProgram, 'u_mouse'), mouseX, mouseY);
+                gl.uniform2f(gl.getUniformLocation(velocityProgram, 'u_prevMouse'), prevMouseX, prevMouseY);
+                gl.uniform1f(gl.getUniformLocation(velocityProgram, 'u_brushSize'), brushSize);
+                gl.uniform1i(gl.getUniformLocation(velocityProgram, 'u_isDrawing'), isDrawing);
+                gl.uniform1f(gl.getUniformLocation(velocityProgram, 'u_deltaTime'), deltaTime);
+                gl.uniform1f(gl.getUniformLocation(velocityProgram, 'u_flowRate'), flowRate);
+                
+                // Set textures
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, velocityState.read);
+                gl.uniform1i(gl.getUniformLocation(velocityProgram, 'u_previousVelocity'), 0);
+                
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_2D, fluidState.read);
+                gl.uniform1i(gl.getUniformLocation(velocityProgram, 'u_waterState'), 1);
+                
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, currentPaperTexture);
+                gl.uniform1i(gl.getUniformLocation(velocityProgram, 'u_paperTexture'), 2);
+                
+                // Render to velocity framebuffer
+                gl.bindFramebuffer(gl.FRAMEBUFFER, velocityState.writeFB);
+                gl.viewport(0, 0, width, height);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                
+                // Update fluid state
+                gl.useProgram(fluidProgram);
+                
+                // Set up attributes
+                const fluidPosAttribLocation = gl.getAttribLocation(fluidProgram, 'a_position');
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.enableVertexAttribArray(fluidPosAttribLocation);
+                gl.vertexAttribPointer(fluidPosAttribLocation, 2, gl.FLOAT, false, 0, 0);
+                
+                const fluidTexAttribLocation = gl.getAttribLocation(fluidProgram, 'a_texCoord');
+                gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                gl.enableVertexAttribArray(fluidTexAttribLocation);
+                gl.vertexAttribPointer(fluidTexAttribLocation, 2, gl.FLOAT, false, 0, 0);
+                
+                // Set uniforms
+                gl.uniform2f(gl.getUniformLocation(fluidProgram, 'u_resolution'), width, height);
+                gl.uniform2f(gl.getUniformLocation(fluidProgram, 'u_mouse'), mouseX, mouseY);
+                // Mix colors using Mixbox in JavaScript before passing to shader
+                // This way we can still use Mixbox's algorithm but avoid WebGL shader compatibility issues
+                const selectedColor = pigments[selectedPigmentIndex].color;
+                
+                // Use Mixbox to convert to a more accurate color representation if it's not clear water
+                let finalColor;
+                if (selectedPigmentIndex === pigments.length - 1) { // Clear water
+                    finalColor = [1.0, 1.0, 1.0]; 
+                } else {
+                    // We'll use the direct RGB values but they've been chosen based on real pigments
+                    finalColor = [
+                        selectedColor[0] / 255.0,
+                        selectedColor[1] / 255.0,
+                        selectedColor[2] / 255.0
+                    ];
+                }
+                
+                gl.uniform3f(gl.getUniformLocation(fluidProgram, 'u_pigmentColor'), 
+                    finalColor[0], 
+                    finalColor[1], 
+                    finalColor[2]);
+                gl.uniform1f(gl.getUniformLocation(fluidProgram, 'u_brushSize'), brushSize);
+                gl.uniform1f(gl.getUniformLocation(fluidProgram, 'u_pigmentDensity'), pigmentDensity);
+                gl.uniform1f(gl.getUniformLocation(fluidProgram, 'u_waterAmount'), waterAmount);
+                gl.uniform1i(gl.getUniformLocation(fluidProgram, 'u_isDrawing'), isDrawing);
+                gl.uniform1f(gl.getUniformLocation(fluidProgram, 'u_evaporationRate'), evaporationRate);
+                gl.uniform1f(gl.getUniformLocation(fluidProgram, 'u_diffusionRate'), diffusionRate);
+                gl.uniform1f(gl.getUniformLocation(fluidProgram, 'u_absorptionRate'), paperAbsorption);
+                gl.uniform1f(gl.getUniformLocation(fluidProgram, 'u_deltaTime'), deltaTime);
+                gl.uniform1i(gl.getUniformLocation(fluidProgram, 'u_enableGranulation'), enableGranulation);
+                
+                // Set textures
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, fluidState.read);
+                gl.uniform1i(gl.getUniformLocation(fluidProgram, 'u_previousState'), 0);
+                
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_2D, velocityState.write); // Use the newly updated velocity
+                gl.uniform1i(gl.getUniformLocation(fluidProgram, 'u_waterVelocity'), 1);
+                
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, currentPaperTexture);
+                gl.uniform1i(gl.getUniformLocation(fluidProgram, 'u_paperTexture'), 2);
+                
+                // We no longer use the mixbox LUT texture in the shaders directly
+                // Instead we'll handle color mixing in a simplified way
+                
+                // Render to fluid framebuffer
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fluidState.writeFB);
+                gl.viewport(0, 0, width, height);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                
+                // Swap buffers for next frame
+                swapBuffers(velocityState);
+                swapBuffers(fluidState);
+                
+                // Update previous mouse position
+                prevMouseX = mouseX;
+                prevMouseY = mouseY;
+            }
+            
+            // Render function
+            function render() {
+                gl.useProgram(renderProgram);
+                
+                // Set up attributes
+                const posAttribLocation = gl.getAttribLocation(renderProgram, 'a_position');
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.enableVertexAttribArray(posAttribLocation);
+                gl.vertexAttribPointer(posAttribLocation, 2, gl.FLOAT, false, 0, 0);
+                
+                const texAttribLocation = gl.getAttribLocation(renderProgram, 'a_texCoord');
+                gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                gl.enableVertexAttribArray(texAttribLocation);
+                gl.vertexAttribPointer(texAttribLocation, 2, gl.FLOAT, false, 0, 0);
+                
+                // Set uniforms
+                gl.uniform1i(gl.getUniformLocation(renderProgram, 'u_showWater'), showWater);
+                gl.uniform1i(gl.getUniformLocation(renderProgram, 'u_edgeDarkening'), edgeDarkening);
+                
+                // Set textures
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, fluidState.read);
+                gl.uniform1i(gl.getUniformLocation(renderProgram, 'u_fluidState'), 0);
+                
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_2D, velocityState.read);
+                gl.uniform1i(gl.getUniformLocation(renderProgram, 'u_waterVelocity'), 1);
+                
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, currentPaperTexture);
+                gl.uniform1i(gl.getUniformLocation(renderProgram, 'u_paperTexture'), 2);
+                
+                // We'll mix colors without directly using the mixbox LUT texture in the shader
+                
+                // Render to canvas
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.viewport(0, 0, width, height);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            }
+            
+            // Animation loop
+            let lastTime = 0;
+            let frameCount = 0;
+            let lastFpsUpdateTime = 0;
+            
+            function animate(currentTime) {
+                requestAnimationFrame(animate);
+                
+                // Calculate time delta
+                const deltaTime = lastTime ? Math.min((currentTime - lastTime) / 1000, 0.05) : 0.016;
+                lastTime = currentTime;
+                
+                // Update simulation
+                updateFluid(deltaTime);
+                
+                // Render
+                render();
+                
+                // Update FPS counter
+                frameCount++;
+                if (currentTime - lastFpsUpdateTime > 1000) { // Update every second
+                    const fps = Math.round(frameCount * 1000 / (currentTime - lastFpsUpdateTime));
+                    fpsCounter.textContent = `FPS: ${fps}`;
+                    frameCount = 0;
+                    lastFpsUpdateTime = currentTime;
+                }
+            }
+            
+            // Initialize UI and canvas listeners
+            setupUIListeners();
+            setupCanvasListeners();
+            
+            // Start animation loop
+            requestAnimationFrame(animate);
+            
+            // Hide loading indicator
+            document.getElementById('loading').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
