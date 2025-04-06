@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Watercolor Polygon Deformation</title>
+  <title>Watercolor Painting Tool</title>
   <style>
     body {
       margin: 0;
@@ -48,7 +48,9 @@
     }
     .color-palette {
       display: flex;
+      flex-wrap: wrap;
       gap: 5px;
+      max-width: 240px;
     }
     .color-swatch {
       width: 30px;
@@ -113,8 +115,8 @@
   
   <script>
     /**********************************************************
-     * Watercolor Polygon Deformation - Based on Tyler Hobbs' approach
-     * Using Mixbox for pigment-based color mixing
+     * Continuous Watercolor Painting Tool
+     * Using Tyler Hobbs' polygon deformation technique
      **********************************************************/
     
     // Set up the main canvas
@@ -127,6 +129,9 @@
     
     const maskCanvas = document.createElement('canvas');
     const maskCtx = maskCanvas.getContext('2d');
+    
+    const strokeCanvas = document.createElement('canvas');
+    const strokeCtx = strokeCanvas.getContext('2d');
     
     // Canvas dimensions
     let width, height;
@@ -155,6 +160,11 @@
     let edgeVariance = parseFloat(varianceRange.value); // Variance for deformation
     let numLayers = parseInt(layersRange.value);        // Number of layers to stack
     let textureAmount = parseFloat(textureRange.value); // Amount of texture to apply
+    
+    // Painting state
+    let painting = false;
+    let lastX = 0, lastY = 0;
+    let strokePoints = [];
     
     // Undo history
     const undoHistory = [];
@@ -188,7 +198,13 @@
       
       // Mouse and touch events for the canvas
       canvas.addEventListener('mousedown', startPainting);
+      canvas.addEventListener('mousemove', paint);
+      canvas.addEventListener('mouseup', endPainting);
+      canvas.addEventListener('mouseleave', endPainting);
+      
       canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+      canvas.addEventListener('touchend', endPainting);
       
       // Control events
       colorPicker.oninput = () => {
@@ -244,6 +260,9 @@
       
       maskCanvas.width = width;
       maskCanvas.height = height;
+      
+      strokeCanvas.width = width;
+      strokeCanvas.height = height;
       
       // Redraw if needed
       if (undoHistory.length > 0) {
@@ -309,53 +328,216 @@
     }
     
     function startPainting(e) {
-      // Save current state for undo
-      saveToUndoHistory();
+      painting = true;
       
+      // Clear stroke points
+      strokePoints = [];
+      
+      // Clear the stroke canvas
+      strokeCtx.clearRect(0, 0, width, height);
+      
+      // Get the initial position
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      lastX = e.clientX - rect.left;
+      lastY = e.clientY - rect.top;
       
-      applyWatercolorDab(x, y);
+      // Add the first point
+      strokePoints.push({ x: lastX, y: lastY });
+      
+      // Draw a dot at the point for immediate feedback
+      strokeCtx.beginPath();
+      strokeCtx.fillStyle = brushColor;
+      strokeCtx.arc(lastX, lastY, brushSize/2, 0, Math.PI * 2);
+      strokeCtx.fill();
     }
     
     function handleTouchStart(e) {
       e.preventDefault();
+      painting = true;
       
-      // Save current state for undo
-      saveToUndoHistory();
+      // Clear stroke points
+      strokePoints = [];
       
+      // Clear the stroke canvas
+      strokeCtx.clearRect(0, 0, width, height);
+      
+      // Get the initial position
       const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
+      lastX = touch.clientX - rect.left;
+      lastY = touch.clientY - rect.top;
       
-      applyWatercolorDab(x, y);
+      // Add the first point
+      strokePoints.push({ x: lastX, y: lastY });
+      
+      // Draw a dot at the point for immediate feedback
+      strokeCtx.beginPath();
+      strokeCtx.fillStyle = brushColor;
+      strokeCtx.arc(lastX, lastY, brushSize/2, 0, Math.PI * 2);
+      strokeCtx.fill();
     }
     
-    function applyWatercolorDab(x, y) {
-      // Create base polygon (circle with many points)
-      const basePolygon = createBasePolygon(x, y, brushSize);
+    function paint(e) {
+      if (!painting) return;
       
-      // Apply the watercolor effect
-      createWatercolorEffect(basePolygon, brushColor);
+      // Get current position
+      const rect = canvas.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+      
+      // Calculate distance
+      const distance = Math.sqrt((currentX - lastX) ** 2 + (currentY - lastY) ** 2);
+      
+      // Skip tiny movements
+      if (distance < 2) return;
+      
+      // Draw line on stroke canvas
+      strokeCtx.beginPath();
+      strokeCtx.strokeStyle = brushColor;
+      strokeCtx.lineWidth = brushSize;
+      strokeCtx.lineCap = 'round';
+      strokeCtx.lineJoin = 'round';
+      strokeCtx.moveTo(lastX, lastY);
+      strokeCtx.lineTo(currentX, currentY);
+      strokeCtx.stroke();
+      
+      // Add the point to our stroke
+      strokePoints.push({ x: currentX, y: currentY });
+      
+      // Update last position
+      lastX = currentX;
+      lastY = currentY;
     }
     
-    // Create a circular polygon with many points
-    function createBasePolygon(centerX, centerY, radius) {
-      const points = [];
-      const numPoints = 24;
+    function handleTouchMove(e) {
+      e.preventDefault();
+      if (!painting) return;
       
-      for (let i = 0; i < numPoints; i++) {
-        const angle = (i / numPoints) * Math.PI * 2;
-        points.push({
-          x: centerX + Math.cos(angle) * radius,
-          y: centerY + Math.sin(angle) * radius,
-          variance: edgeVariance  // Initial variance for all edges
+      // Get current position
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const currentX = touch.clientX - rect.left;
+      const currentY = touch.clientY - rect.top;
+      
+      // Calculate distance
+      const distance = Math.sqrt((currentX - lastX) ** 2 + (currentY - lastY) ** 2);
+      
+      // Skip tiny movements
+      if (distance < 2) return;
+      
+      // Draw line on stroke canvas
+      strokeCtx.beginPath();
+      strokeCtx.strokeStyle = brushColor;
+      strokeCtx.lineWidth = brushSize;
+      strokeCtx.lineCap = 'round';
+      strokeCtx.lineJoin = 'round';
+      strokeCtx.moveTo(lastX, lastY);
+      strokeCtx.lineTo(currentX, currentY);
+      strokeCtx.stroke();
+      
+      // Add the point to our stroke
+      strokePoints.push({ x: currentX, y: currentY });
+      
+      // Update last position
+      lastX = currentX;
+      lastY = currentY;
+    }
+    
+    function endPainting() {
+      if (!painting) return;
+      painting = false;
+      
+      // Save current state before applying watercolor effect
+      saveToUndoHistory();
+      
+      // Apply watercolor effect to the stroke
+      applyWatercolorToStroke();
+    }
+    
+    function applyWatercolorToStroke() {
+      if (strokePoints.length < 1) return;
+      
+      // Create a polygon from the stroke
+      const polygon = createPolygonFromStroke(strokePoints, brushSize);
+      
+      // Apply the watercolor effect to this polygon
+      createWatercolorEffect(polygon, brushColor);
+    }
+    
+    function createPolygonFromStroke(points, brushWidth) {
+      // For a stroke, we'll create a polygon that surrounds the stroke
+      // Think of it as creating a "tube" around the stroke line
+      const polygon = [];
+      
+      // If we only have one point, treat it as a circle
+      if (points.length === 1) {
+        const center = points[0];
+        const numPoints = 24;
+        
+        for (let i = 0; i < numPoints; i++) {
+          const angle = (i / numPoints) * Math.PI * 2;
+          polygon.push({
+            x: center.x + Math.cos(angle) * brushWidth,
+            y: center.y + Math.sin(angle) * brushWidth,
+            variance: edgeVariance  // Initial variance
+          });
+        }
+        
+        return polygon;
+      }
+      
+      // Create normals for each segment
+      const normals = [];
+      
+      for (let i = 1; i < points.length; i++) {
+        const p1 = points[i - 1];
+        const p2 = points[i];
+        
+        // Direction vector
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        
+        // Normalize
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const ndx = dx / len;
+        const ndy = dy / len;
+        
+        // Normal (perpendicular) vector
+        normals.push({
+          x: -ndy,
+          y: ndx
         });
       }
       
-      return points;
+      // Add one more normal at the end (repeat the last one)
+      normals.push(normals[normals.length - 1]);
+      
+      // Create the polygon by offsetting in both directions
+      // First side (offset in positive normal direction)
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const n = normals[i];
+        
+        polygon.push({
+          x: p.x + n.x * brushWidth,
+          y: p.y + n.y * brushWidth,
+          variance: edgeVariance  // Initial variance
+        });
+      }
+      
+      // Second side (offset in negative normal direction, going backwards)
+      for (let i = points.length - 1; i >= 0; i--) {
+        const p = points[i];
+        const n = normals[i];
+        
+        polygon.push({
+          x: p.x - n.x * brushWidth,
+          y: p.y - n.y * brushWidth,
+          variance: edgeVariance  // Initial variance
+        });
+      }
+      
+      return polygon;
     }
     
     // Deform a polygon using the recursive deformation algorithm
@@ -445,6 +627,9 @@
         ctx.drawImage(layerCanvas, 0, 0);
         ctx.globalAlpha = 1.0;
       }
+      
+      // Clear the stroke canvas for the next stroke
+      strokeCtx.clearRect(0, 0, width, height);
     }
     
     // Apply a texture mask to create the granular watercolor look
