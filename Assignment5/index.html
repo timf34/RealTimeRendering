@@ -2,181 +2,489 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Mixbox Watercolor Demo</title>
+  <title>Watercolor Polygon Deformation</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    .controls {
+      padding: 10px;
+      background: #eee;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      min-width: 120px;
+    }
+    label {
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    button {
+      padding: 8px 12px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: white;
+      cursor: crosshair;
+    }
+    .color-palette {
+      display: flex;
+      gap: 5px;
+    }
+    .color-swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid #ccc;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .color-swatch.active {
+      border: 2px solid #333;
+      transform: scale(1.1);
+    }
+  </style>
 </head>
-<body style="margin:0; padding:0; background:#fafafa;">
-  
-  <!-- Color Picker and UI Controls -->
-  <div style="padding:10px; background:#ccc;">
-    <label>Brush Color:
-      <input type="color" id="colorPicker" value="#FF0000"/>
-    </label>
-    <label>Brush Size:
-      <input type="range" id="sizeRange" min="1" max="100" value="30"/>
-      <span id="sizeLabel">30</span> px
-    </label>
-    <label>Softness:
-      <input type="range" id="softRange" min="0" max="1" step="0.01" value="0.5"/>
-      <span id="softLabel">0.50</span>
-    </label>
-    <button id="clearBtn">Clear</button>
-  </div>
-
-  <!-- Our Canvas -->
-  <canvas id="canvas" width="800" height="600" 
-          style="border:1px solid #333; display:block; margin: 0 auto;"></canvas>
-
-  <!-- Mixbox (pigment-based color mixing) -->
-  <script src="https://scrtwpns.com/mixbox.js"></script>
-
-  <script>
-    /********************************************************
-     * Minimal “Watercolor” Canvas Painting in 2D
-     * using Mixbox for natural color mixing
-     ********************************************************/
-
-    const canvas = document.getElementById('canvas');
-    const ctx    = canvas.getContext('2d');
-
-    const colorPicker = document.getElementById('colorPicker');
-    const sizeRange   = document.getElementById('sizeRange');
-    const sizeLabel   = document.getElementById('sizeLabel');
-    const softRange   = document.getElementById('softRange');
-    const softLabel   = document.getElementById('softLabel');
-    const clearBtn    = document.getElementById('clearBtn');
-
-    let brushColor = colorPicker.value;  // e.g. "#ff0000"
-    let brushSize  = parseInt(sizeRange.value);
-    let softness   = parseFloat(softRange.value);
-
-    let painting   = false;
+<body>
+  <div class="controls">
+    <div class="control-group">
+      <label>Brush Color:</label>
+      <input type="color" id="colorPicker" value="#1e90ff"/>
+      <div class="color-palette" id="colorPalette">
+        <!-- Color swatches will be added here -->
+      </div>
+    </div>
     
+    <div class="control-group">
+      <label>Brush Size: <span id="sizeLabel">30</span>px</label>
+      <input type="range" id="sizeRange" min="5" max="100" value="30"/>
+    </div>
+    
+    <div class="control-group">
+      <label>Layer Opacity: <span id="opacityLabel">0.04</span></label>
+      <input type="range" id="opacityRange" min="0.01" max="0.1" step="0.01" value="0.04"/>
+    </div>
+    
+    <div class="control-group">
+      <label>Edge Variance: <span id="varianceLabel">0.50</span></label>
+      <input type="range" id="varianceRange" min="0" max="1" step="0.01" value="0.5"/>
+    </div>
+    
+    <div class="control-group">
+      <label>Layers: <span id="layersLabel">40</span></label>
+      <input type="range" id="layersRange" min="10" max="80" step="5" value="40"/>
+    </div>
+    
+    <div class="control-group">
+      <label>Texture: <span id="textureLabel">0.30</span></label>
+      <input type="range" id="textureRange" min="0" max="0.8" step="0.01" value="0.3"/>
+    </div>
+    
+    <div class="control-group">
+      <button id="clearBtn">Clear Canvas</button>
+      <button id="undoBtn">Undo</button>
+      <button id="saveBtn">Save Image</button>
+    </div>
+  </div>
+  
+  <canvas id="mainCanvas"></canvas>
+  
+  <!-- Mixbox for pigment-based color mixing -->
+  <script src="https://scrtwpns.com/mixbox.js"></script>
+  
+  <script>
+    /**********************************************************
+     * Watercolor Polygon Deformation - Based on Tyler Hobbs' approach
+     * Using Mixbox for pigment-based color mixing
+     **********************************************************/
+    
+    // Set up the main canvas
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Hidden canvases for offscreen rendering
+    const layerCanvas = document.createElement('canvas');
+    const layerCtx = layerCanvas.getContext('2d');
+    
+    const maskCanvas = document.createElement('canvas');
+    const maskCtx = maskCanvas.getContext('2d');
+    
+    // Canvas dimensions
+    let width, height;
+    
+    // Controls
+    const colorPicker = document.getElementById('colorPicker');
+    const sizeRange = document.getElementById('sizeRange');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const opacityRange = document.getElementById('opacityRange');
+    const opacityLabel = document.getElementById('opacityLabel');
+    const varianceRange = document.getElementById('varianceRange');
+    const varianceLabel = document.getElementById('varianceLabel');
+    const layersRange = document.getElementById('layersRange');
+    const layersLabel = document.getElementById('layersLabel');
+    const textureRange = document.getElementById('textureRange');
+    const textureLabel = document.getElementById('textureLabel');
+    const clearBtn = document.getElementById('clearBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const colorPalette = document.getElementById('colorPalette');
+    
+    // Watercolor parameters
+    let brushColor = colorPicker.value;                 // Color for painting
+    let brushSize = parseInt(sizeRange.value);          // Brush size in pixels
+    let layerOpacity = parseFloat(opacityRange.value);  // Opacity per layer
+    let edgeVariance = parseFloat(varianceRange.value); // Variance for deformation
+    let numLayers = parseInt(layersRange.value);        // Number of layers to stack
+    let textureAmount = parseFloat(textureRange.value); // Amount of texture to apply
+    
+    // Undo history
+    const undoHistory = [];
+    const MAX_UNDO = 20;
+    
+    // Watercolor pigments (traditional watercolors)
+    const pigments = [
+      { name: "Ultramarine Blue", color: "#19005a" },
+      { name: "Cobalt Blue", color: "#0d428c" },
+      { name: "Phthalo Blue", color: "#0d1b44" },
+      { name: "Cobalt Violet", color: "#4e0042" },
+      { name: "Quinacridone Magenta", color: "#80022e" },
+      { name: "Cadmium Red", color: "#ff2702" },
+      { name: "Cadmium Orange", color: "#ff6900" },
+      { name: "Cadmium Yellow", color: "#feec00" },
+      { name: "Hansa Yellow", color: "#fcd300" },
+      { name: "Sap Green", color: "#6b9404" },
+      { name: "Permanent Green", color: "#076d16" },
+      { name: "Burnt Sienna", color: "#7b4800" },
+      { name: "Raw Umber", color: "#593d2b" },
+      { name: "Payne's Gray", color: "#2f3e46" }
+    ];
+    
+    // Initialize the application
     function init() {
-      // Mouse events
-      canvas.addEventListener('mousedown', e => {
-        painting = true;
-        paint(e);
-      });
-      canvas.addEventListener('mousemove', e => {
-        if (painting) paint(e);
-      });
-      canvas.addEventListener('mouseup',   e => { painting = false; });
-      canvas.addEventListener('mouseleave',e => { painting = false; });
-
-      // Touch events (basic)
-      canvas.addEventListener('touchstart', e => {
-        e.preventDefault();
-        painting = true;
-        paintTouch(e);
-      }, {passive:false});
-      canvas.addEventListener('touchmove', e => {
-        e.preventDefault();
-        if (painting) paintTouch(e);
-      }, {passive:false});
-      canvas.addEventListener('touchend', e => { painting = false; });
-
-      // UI controls
-      colorPicker.oninput = () => { brushColor = colorPicker.value; };
-      sizeRange.oninput   = () => {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      // Initialize color palette
+      initColorPalette();
+      
+      // Mouse and touch events for the canvas
+      canvas.addEventListener('mousedown', startPainting);
+      canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+      
+      // Control events
+      colorPicker.oninput = () => {
+        brushColor = colorPicker.value;
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      };
+      
+      sizeRange.oninput = () => {
         brushSize = parseInt(sizeRange.value);
         sizeLabel.textContent = brushSize;
       };
-      softRange.oninput   = () => {
-        softness = parseFloat(softRange.value);
-        softLabel.textContent = softness.toFixed(2);
+      
+      opacityRange.oninput = () => {
+        layerOpacity = parseFloat(opacityRange.value);
+        opacityLabel.textContent = layerOpacity.toFixed(2);
       };
+      
+      varianceRange.oninput = () => {
+        edgeVariance = parseFloat(varianceRange.value);
+        varianceLabel.textContent = edgeVariance.toFixed(2);
+      };
+      
+      layersRange.oninput = () => {
+        numLayers = parseInt(layersRange.value);
+        layersLabel.textContent = numLayers;
+      };
+      
+      textureRange.oninput = () => {
+        textureAmount = parseFloat(textureRange.value);
+        textureLabel.textContent = textureAmount.toFixed(2);
+      };
+      
       clearBtn.onclick = clearCanvas;
-
-      // Start blank
+      undoBtn.onclick = undoLastAction;
+      saveBtn.onclick = saveCanvas;
+      
+      // Start with a clean canvas
       clearCanvas();
     }
-
+    
+    function resizeCanvas() {
+      // Get available space
+      const controlsHeight = document.querySelector('.controls').offsetHeight;
+      width = window.innerWidth;
+      height = window.innerHeight - controlsHeight - 5;
+      
+      // Set the canvas sizes
+      canvas.width = width;
+      canvas.height = height;
+      
+      layerCanvas.width = width;
+      layerCanvas.height = height;
+      
+      maskCanvas.width = width;
+      maskCanvas.height = height;
+      
+      // Redraw if needed
+      if (undoHistory.length > 0) {
+        ctx.putImageData(undoHistory[undoHistory.length - 1], 0, 0);
+      }
+    }
+    
+    function initColorPalette() {
+      colorPalette.innerHTML = '';
+      pigments.forEach((pigment, index) => {
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.backgroundColor = pigment.color;
+        swatch.title = pigment.name;
+        swatch.dataset.index = index;
+        swatch.onclick = () => {
+          document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+          swatch.classList.add('active');
+          brushColor = pigment.color;
+          colorPicker.value = pigment.color;
+        };
+        colorPalette.appendChild(swatch);
+      });
+      
+      // Activate the first pigment by default
+      colorPalette.children[0].classList.add('active');
+    }
+    
     function clearCanvas() {
+      // Save current state to undo history before clearing
+      saveToUndoHistory();
+      
+      // Clear the canvas
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
     }
-
-    function paint(evt) {
-      const rect = canvas.getBoundingClientRect();
-      const x = evt.clientX - rect.left;
-      const y = evt.clientY - rect.top;
-      applyBrush(x, y);
+    
+    function undoLastAction() {
+      if (undoHistory.length > 1) {
+        // Remove current state
+        undoHistory.pop();
+        
+        // Restore previous state
+        ctx.putImageData(undoHistory[undoHistory.length - 1], 0, 0);
+      }
     }
-
-    function paintTouch(evt) {
+    
+    function saveCanvas() {
+      const link = document.createElement('a');
+      link.download = 'watercolor-painting.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    function saveToUndoHistory() {
+      // Save the current canvas state to undo history
+      undoHistory.push(ctx.getImageData(0, 0, width, height));
+      
+      // Limit the history size
+      if (undoHistory.length > MAX_UNDO) {
+        undoHistory.shift();
+      }
+    }
+    
+    function startPainting(e) {
+      // Save current state for undo
+      saveToUndoHistory();
+      
       const rect = canvas.getBoundingClientRect();
-      const touch = evt.touches[0];
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      applyWatercolorDab(x, y);
+    }
+    
+    function handleTouchStart(e) {
+      e.preventDefault();
+      
+      // Save current state for undo
+      saveToUndoHistory();
+      
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
       const x = touch.clientX - rect.left;
       const y = touch.clientY - rect.top;
-      applyBrush(x, y);
+      
+      applyWatercolorDab(x, y);
     }
-
-    // Draw a soft circle of radius brushSize, blending with existing pixels
-    function applyBrush(cx, cy) {
-      // We will read a small region around the brush area, do color mixing, then put it back
-
-      // Brush radius
-      let r = brushSize;
-      let xMin = Math.max(0, Math.floor(cx - r));
-      let yMin = Math.max(0, Math.floor(cy - r));
-      let xMax = Math.min(canvas.width,  Math.ceil(cx + r));
-      let yMax = Math.min(canvas.height, Math.ceil(cy + r));
-
-      // Get raw pixels
-      const imgData = ctx.getImageData(xMin, yMin, xMax - xMin, yMax - yMin);
-      const data    = imgData.data;
-
-      // Convert brush color to something Mixbox can handle easily
-      // (Mixbox accepts "rgb(...)","rgba(...)", arrays, or hex).
-      // For best results, we can do: var brushRGBA = mixbox.lerp(...) etc.
-      // But here we'll just keep it as a string & rely on mixbox to parse it.
-      const brushCol = brushColor;
-
-      // For each pixel in the region, see if it's in the circle, 
-      // then mix it with the brush color
-      for (let py = 0; py < (yMax - yMin); py++) {
-        for (let px = 0; px < (xMax - xMin); px++) {
-
-          // actual coords
-          let actualX = xMin + px;
-          let actualY = yMin + py;
-
-          // distance from brush center
-          let dx = actualX - cx;
-          let dy = actualY - cy;
-          let dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist > r) continue;  // outside brush
-
-          // The closer to center, the stronger the mixing
-          // We'll do a simple linear fade, then multiply by the "softness"
-          // so that softness ~ 1.0 => stronger coverage; softness ~ 0 => none
-          let strength = (1.0 - dist/r) * softness;
-          if (strength < 0.0) strength = 0.0;
-          if (strength > 1.0) strength = 1.0;
-
-          // current pixel RGBA
-          let index = 4 * (py*(xMax - xMin) + px);
-          let rOld = data[index + 0];
-          let gOld = data[index + 1];
-          let bOld = data[index + 2];
-          let aOld = data[index + 3]; // usually 255 if fully opaque
-
-          // Use Mixbox to mix:
-          //   newColor = lerp( oldColor, brushColor, strength )
-          let oldColor = [rOld, gOld, bOld, aOld];
-          let newColor = mixbox.lerp(oldColor, brushCol, strength);
-
-          data[index + 0] = newColor[0];  // r
-          data[index + 1] = newColor[1];  // g
-          data[index + 2] = newColor[2];  // b
-          data[index + 3] = 255;          // fully opaque
-        }
+    
+    function applyWatercolorDab(x, y) {
+      // Create base polygon (circle with many points)
+      const basePolygon = createBasePolygon(x, y, brushSize);
+      
+      // Apply the watercolor effect
+      createWatercolorEffect(basePolygon, brushColor);
+    }
+    
+    // Create a circular polygon with many points
+    function createBasePolygon(centerX, centerY, radius) {
+      const points = [];
+      const numPoints = 24;
+      
+      for (let i = 0; i < numPoints; i++) {
+        const angle = (i / numPoints) * Math.PI * 2;
+        points.push({
+          x: centerX + Math.cos(angle) * radius,
+          y: centerY + Math.sin(angle) * radius,
+          variance: edgeVariance  // Initial variance for all edges
+        });
       }
-      // Put updated pixels back
-      ctx.putImageData(imgData, xMin, yMin);
+      
+      return points;
     }
-
-    // Kick things off
+    
+    // Deform a polygon using the recursive deformation algorithm
+    function deformPolygon(polygon, depth, maxDepth) {
+      if (depth >= maxDepth) {
+        return polygon;
+      }
+      
+      const newPolygon = [];
+      
+      for (let i = 0; i < polygon.length; i++) {
+        const point1 = polygon[i];
+        const point2 = polygon[(i + 1) % polygon.length];
+        
+        // Add the first point
+        newPolygon.push(point1);
+        
+        // Calculate midpoint
+        const midX = (point1.x + point2.x) / 2;
+        const midY = (point1.y + point2.y) / 2;
+        
+        // Get variance for this edge
+        // The variance will control how much the midpoint can deviate
+        const edgeVariance = (point1.variance + point2.variance) / 2;
+        
+        // Gaussian random number approximation (Box-Muller transform)
+        const rand1 = Math.random();
+        const rand2 = Math.random();
+        const gaussianRand = Math.sqrt(-2 * Math.log(rand1)) * Math.cos(2 * Math.PI * rand2);
+        
+        // Displacement amount based on edge variance and distance between points
+        const distance = Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+        const displacement = gaussianRand * edgeVariance * distance * 0.25;
+        
+        // Calculate displacement direction (perpendicular to edge)
+        const dx = -(point2.y - point1.y);
+        const dy = point2.x - point1.x;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        
+        // Create new midpoint with displacement
+        const newMidpoint = {
+          x: midX + (dx / length) * displacement,
+          y: midY + (dy / length) * displacement,
+          // Variance decreases with depth but has some randomness
+          variance: edgeVariance * (0.8 + Math.random() * 0.4) * (maxDepth - depth) / maxDepth
+        };
+        
+        newPolygon.push(newMidpoint);
+      }
+      
+      return deformPolygon(newPolygon, depth + 1, maxDepth);
+    }
+    
+    // Create a watercolor effect by stacking deformed polygons
+    function createWatercolorEffect(basePolygon, color) {
+      // Create a highly deformed base shape first
+      const baseDeformedPolygon = deformPolygon(basePolygon, 0, 7);
+      
+      // For each layer
+      for (let layer = 0; layer < numLayers; layer++) {
+        // Create a slightly different polygon for each layer
+        // by deforming the baseDeformedPolygon
+        const layerPolygon = deformPolygon(baseDeformedPolygon, 0, 4);
+        
+        // Clear the layer canvas
+        layerCtx.clearRect(0, 0, width, height);
+        
+        // Draw the deformed polygon on the layer canvas
+        layerCtx.fillStyle = color;
+        layerCtx.beginPath();
+        layerCtx.moveTo(layerPolygon[0].x, layerPolygon[0].y);
+        
+        for (let i = 1; i < layerPolygon.length; i++) {
+          layerCtx.lineTo(layerPolygon[i].x, layerPolygon[i].y);
+        }
+        
+        layerCtx.closePath();
+        layerCtx.fill();
+        
+        // Apply texture mask if needed
+        if (textureAmount > 0) {
+          applyTextureMask(layerCanvas);
+        }
+        
+        // Composite the layer onto the main canvas with low opacity
+        ctx.globalAlpha = layerOpacity;
+        ctx.drawImage(layerCanvas, 0, 0);
+        ctx.globalAlpha = 1.0;
+      }
+    }
+    
+    // Apply a texture mask to create the granular watercolor look
+    function applyTextureMask(targetCanvas) {
+      // Clear the mask canvas
+      maskCtx.clearRect(0, 0, width, height);
+      
+      // Generate the texture by drawing random circles
+      const circleCount = 900 * textureAmount;
+      
+      maskCtx.fillStyle = "#ffffff";
+      
+      for (let i = 0; i < circleCount; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        
+        // Gaussian random for circle size
+        const rand1 = Math.random();
+        const rand2 = Math.random();
+        const gaussianRand = Math.sqrt(-2 * Math.log(rand1)) * Math.cos(2 * Math.PI * rand2);
+        
+        // Size of circle based on canvas width and randomness
+        const size = Math.abs(gaussianRand * width * 0.03) + width * 0.02;
+        
+        maskCtx.beginPath();
+        maskCtx.arc(x, y, size, 0, Math.PI * 2);
+        maskCtx.fill();
+      }
+      
+      // Apply the mask to the target canvas
+      const targetCtx = targetCanvas.getContext('2d');
+      
+      // Use the mask as a source for destination-in compositing
+      // This will keep only the parts of targetCanvas that overlap with non-transparent parts of maskCanvas
+      targetCtx.globalCompositeOperation = 'destination-in';
+      targetCtx.drawImage(maskCanvas, 0, 0);
+      targetCtx.globalCompositeOperation = 'source-over';
+    }
+    
+    // Initialize the application
     init();
   </script>
 </body>
