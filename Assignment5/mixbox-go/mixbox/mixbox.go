@@ -4,7 +4,11 @@ package mixbox
 import (
 	"math"
 	"os"
+	"bytes"
+	"compress/flate"
+	"encoding/base64"
 	"fmt"
+	"io"
 )
 
 const LatentSize = 7
@@ -230,4 +234,50 @@ func Lerp(rgb1, rgb2 [3]uint8, t float64) [3]uint8 {
 	}
 
 	return LatentToRGB(mixed)
+}
+
+// decompress takes a raw base64-encoded, deflate-compressed string and returns the decompressed LUT data.
+func decompress(input string) ([]byte, error) {
+	// Step 1: Base64 decode the input string.
+	data, err := base64.StdEncoding.DecodeString(input)
+	if err != nil {
+		return nil, fmt.Errorf("base64 decode failed: %v", err)
+	}
+
+	// Step 2: Decompress the raw deflate data using compress/flate.
+	reader := flate.NewReader(bytes.NewReader(data))
+	defer reader.Close()
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, reader); err != nil {
+		return nil, fmt.Errorf("flate decompression failed: %v", err)
+	}
+	output := buf.Bytes()
+
+	// Step 3: Process the output bytes as in the Python version:
+	// For each index i, output[i] = (output[i-1] if (i & 63) != 0 else 127) + (output[i] - 127)
+	for i := 0; i < len(output); i++ {
+		var prev byte
+		if i&63 != 0 {
+			prev = output[i-1]
+		} else {
+			prev = 127
+		}
+		output[i] = prev + (output[i] - 127)
+	}
+
+	// Step 4: Append 4161 zeros.
+	output = append(output, make([]byte, 4161)...)
+
+	return output, nil
+}
+
+// DecompressAndInitLUT decompresses the LUT from a raw string and initializes the global LUT.
+func DecompressAndInitLUT(lutString string) error {
+	data, err := decompress(lutString)
+	if err != nil {
+		return err
+	}
+	InitLUT(data)
+	return nil
 }
